@@ -1,5 +1,5 @@
-name: npm - release to dev/integration
-run-name: npm - release from ${{ github.ref_name }} to dev/integration
+name: npm - Release Prisma
+run-name: npm - Release Prisma ${{ github.event.inputs.packageVersion }} }}
 
 on:
   workflow_dispatch:
