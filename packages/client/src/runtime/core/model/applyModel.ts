@@ -98,6 +98,7 @@ function modelActionsLayer(client: Client, dmmfModelName: string): CompositeProx
 
               // stack trace
               callsite: callSite,
+              requestCtx: client.$context().getStore() ?? {},
             }
 
             return client._request({ ...params, ...paramOverrides })

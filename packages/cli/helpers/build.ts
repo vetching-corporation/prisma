@@ -1,6 +1,5 @@
 import type * as esbuild from 'esbuild'
 import fs from 'fs'
-import { copy } from 'fs-extra'
 import lineReplace from 'line-replace'
 import path from 'path'
 
@@ -19,11 +18,6 @@ const cliLifecyclePlugin: esbuild.Plugin = {
     build.onStart(copyPrismaClient)
 
     build.onEnd(async () => {
-      // we copy the contents from @prisma/studio to build
-      await copy(path.join(require.resolve('@prisma/studio/package.json'), '../dist'), './build/public', {
-        overwrite: true,
-      })
-
       // we copy the contents from checkpoint-client to build
       await fs.promises.copyFile(
         path.join(require.resolve('checkpoint-client/package.json'), '../dist/child.js'),
@@ -102,7 +96,8 @@ const cliBuildConfig: BuildOptions = {
   bundle: true,
   external: ['esbuild'],
   emitTypes: false,
-  minify: true,
+  minify: false,
+  // minify: true,
 }
 
 // Setup preinstall
@@ -112,7 +107,8 @@ const preinstallBuildConfig: BuildOptions = {
   outfile: 'preinstall/index',
   bundle: true,
   emitTypes: false,
-  minify: true,
+  minify: false,
+  // minify: true,
 }
 
 const optionalPlugins = process.env.DEV === 'true' ? [] : [cliTypesBuildConfig, cliConfigBuildConfig]

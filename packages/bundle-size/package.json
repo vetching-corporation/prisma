@@ -17,11 +17,11 @@
     "@prisma/adapter-planetscale": "workspace:*",
     "@prisma/adapter-libsql": "workspace:*",
     "@prisma/adapter-d1": "workspace:*",
-    "@prisma/client": "workspace:*",
     "@prisma/pg-worker": "workspace:*",
     "@prisma/adapter-pg-worker": "workspace:*",
+    "@vetching-corporation/prisma-cli": "workspace:*",
+    "@vetching-corporation/prisma-client": "workspace:*",
     "pg": "8.14.1",
-    "prisma": "workspace:*",
     "wrangler": "3.111.0"
   }
 }
