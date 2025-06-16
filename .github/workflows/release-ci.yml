@@ -75,7 +75,8 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          pnpm install
+          pnpm install && \
+          pnpm build
 
       - name: Publish all packages to npm
         id: publish
@@ -84,12 +85,10 @@ jobs:
         run: |
           (
             cd packages/client && \
-            pnpm build && \
             pnpm publish --no-git-checks
           )
           (
             cd packages/cli && \
-            pnpm build && \
             pnpm publish --no-git-checks
           )
 
