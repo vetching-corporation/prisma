@@ -54,7 +54,7 @@ export async function resolveBinary(name: BinaryType, proposedPath?: string): Pr
     return maybeCopyToTmp(prismaPath3)
   }
 
-  // TODO for ?? / needed to come from @prisma/client/generator-build to @prisma/client/runtime
+  // TODO for ?? / needed to come from @prisma/client/generator-build to @vetching-corporation/prisma-client/runtime
   const prismaPath4 = path.join(__dirname, '../runtime', binaryName)
   if (fs.existsSync(prismaPath4)) {
     return maybeCopyToTmp(prismaPath4)

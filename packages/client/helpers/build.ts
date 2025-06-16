@@ -36,7 +36,9 @@ function getOutExtension(format: ModuleFormat): Record<string, string> {
   }[format]
 }
 
-const shouldMinify = !process.env.DEV && process.env.MINIFY !== 'false'
+// TODO :: Rollback
+const shouldMinify = false
+// const shouldMinify = !process.env.DEV && process.env.MINIFY !== 'false'
 
 const NODE_ESM_BANNER = `\
 import * as __banner_node_module from "node:module";
