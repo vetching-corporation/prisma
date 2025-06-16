@@ -4,65 +4,78 @@ run-name: npm - release from ${{ github.ref_name }} to dev/integration
 on:
   workflow_dispatch:
     inputs:
-      dryRun:
-        description: 'Check to do a dry run (does not publish packages)'
-        type: boolean
-      forceIntegrationRelease:
-        description: 'Check to force an integration release for any given branch name'
-        type: boolean
-env:
-  # To hide "Update available 0.0.0 -> x.x.x"
-  PRISMA_HIDE_UPDATE_MESSAGE: 'true'
+      packageVersion:
+        required: true
+        description: 'Target package version'
+      commitHash:
+        required: false
+        description: 'Target commit hash'
 
 jobs:
   release:
-    timeout-minutes: 75
+    timeout-minutes: 10
     runs-on: ubuntu-latest
 
-    concurrency:
-      group: ${{ github.workflow }}
-      cancel-in-progress: false
-
     permissions:
-      # required for publishing to npm with --provenance
-      # see https://docs.npmjs.com/generating-provenance-statements
-      id-token: write
+      contents: read
+      packages: write
 
     outputs:
-      prismaVersion: ${{ steps.publish.outputs.prismaVersion }}
+      PACKAGE_VERSION: ${{ steps.package-version.outputs.PACKAGE_VERSION }}
 
     steps:
-      - name: Print input
-        env:
-          THE_INPUT: '${{ toJson(github.event.inputs) }}'
-        run: |
-          echo "$THE_INPUT"
-
       - uses: actions/checkout@v4
-
-      - name: Install & build
-        uses: ./.github/actions/setup
         with:
-          node-version: 18
-          skip-tsc: false
+          ref: ${{ github.event.inputs.commitHash }}
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: https://npm.pkg.github.com
+          scope: '@vetching-corporation'
+
+      - name: Parse Package Version
+        id: package-version
+        run: |
+          BASE_VERSION="${{ github.event.inputs.packageVersion }}"
+          COMMIT_HASH="${{ github.event.inputs.commitHash }}"
+
+          if [ -z "$COMMIT_HASH" ]; then
+            echo "PACKAGE_VERSION=${BASE_VERSION}" >> $GITHUB_OUTPUT
+          else
+            echo "PACKAGE_VERSION=${BASE_VERSION}-${COMMIT_HASH}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install jq
+        uses: dcarbone/install-jq-action@v3
+
+      - name: Set package version
+        run: |
+          PACKAGE_VERSION="${{ steps.package-version.outputs.PACKAGE_VERSION }}"
+
+          CLIENT_DIR="packages/client"
+          CLI_DIR="package/cli"
+
+          # Client package.json
+          jq --arg version "$PACKAGE_VERSION" '.version=$version' "$CLIENT_DIR/package.json" > "$CLIENT_DIR/package-temp.json"
+          mv "$CLIENT_DIR/package-temp.json" "$CLIENT_DIR/package.json"
+
+          # CLI package.json
+          jq --arg version "$PACKAGE_VERSION" '.version=$version' "$CLI_DIR/package.json" > "$CLI_DIR/package-temp.json"
+          mv "$CLI_DIR/package-temp.json" "$CLI_DIR/package.json"
 
       - name: Publish all packages to npm
         id: publish
-        run: pnpm run publish-all
-        env:
-          # Inputs
-          DRY_RUN: ${{ github.event.inputs.dryRun == 'true' && 'true' || '' }}
-          FORCE_INTEGRATION_RELEASE: ${{ github.event.inputs.forceIntegrationRelease == 'true' && 'true' || '' }}
-          # Other
-          GITHUB_CONTEXT: ${{ toJson(github) }}
-          # https://docs.npmjs.com/generating-provenance-statements
-          NPM_CONFIG_PROVENANCE: true
-          # Secrets
-          # Note: must use personal access token
-          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
-          REDIS_URL: ${{ secrets.REDIS_URL }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          SLACK_RELEASE_FEED_WEBHOOK: ${{ secrets.SLACK_RELEASE_FEED_WEBHOOK }}
+        run: |
+          (
+            cd packages/client
+            pnpm publish
+          )
+          (
+            cd packages/cli
+            pnpm publish
+          )
 
       - name: Print output
         env:
@@ -114,10 +127,9 @@ jobs:
       - name: Slack Notification on Success
         uses: rtCamp/action-slack-notify@v2.3.2
         env:
-          SLACK_TITLE: 'prisma/prisma Release ${{ needs.release.outputs.prismaVersion }} succeeded :white_check_mark:'
+          SLACK_TITLE: 'Prisma Release ${{ needs.release.outputs.PACKAGE_VERSION }} succeeded :white_check_mark:'
           SLACK_COLOR: '#55ff55'
-          SLACK_WEBHOOK: ${{ secrets.SLACK_RELEASE_FEED_WEBHOOK }}
-          SLACK_CHANNEL: feed-prisma-publish
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
 
   failure:
     needs:
@@ -132,7 +144,6 @@ jobs:
       - name: Slack Notification on Failure
         uses: rtCamp/action-slack-notify@v2.3.2
         env:
-          SLACK_TITLE: 'prisma/prisma Release from ${{ github.ref_name }} to dev/integration failed :x:'
+          SLACK_TITLE: 'Prisma Release ${{ needs.release.outputs.PACKAGE_VERSION }} failed :x:'
           SLACK_COLOR: '#FF0000'
-          SLACK_WEBHOOK: ${{ secrets.SLACK_RELEASE_FEED_WEBHOOK }}
-          SLACK_CHANNEL: feed-prisma-publish-failures
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
