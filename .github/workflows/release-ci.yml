@@ -71,6 +71,10 @@ jobs:
           jq --arg version "$PACKAGE_VERSION" '.version=$version' "$CLI_DIR/package.json" > "$CLI_DIR/package-temp.json"
           mv "$CLI_DIR/package-temp.json" "$CLI_DIR/package.json"
 
+      - name: Install dependencies
+        run: |
+          pnpm install
+
       - name: Publish all packages to npm
         id: publish
         env:
@@ -78,13 +82,11 @@ jobs:
         run: |
           (
             cd packages/client && \
-            pnpm install && \
-            pnpm publish
+            pnpm publish --no-git-checks
           )
           (
             cd packages/cli && \
-            pnpm install && \
-            pnpm publish
+            pnpm publish --no-git-checks
           )
 
       - name: Print output
