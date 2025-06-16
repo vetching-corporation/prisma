@@ -84,10 +84,12 @@ jobs:
         run: |
           (
             cd packages/client && \
+            pnpm build && \
             pnpm publish --no-git-checks
           )
           (
             cd packages/cli && \
+            pnpm build && \
             pnpm publish --no-git-checks
           )
 
