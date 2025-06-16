@@ -72,6 +72,8 @@ jobs:
           mv "$CLI_DIR/package-temp.json" "$CLI_DIR/package.json"
 
       - name: Install dependencies
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           pnpm install
 
