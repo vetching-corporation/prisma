@@ -1,5 +1,5 @@
 name: npm - Release Prisma
-run-name: npm - Release Prisma ${{ github.event.inputs.packageVersion }} }}
+run-name: npm - Release Prisma ${{ github.event.inputs.packageVersion }}
 
 on:
   workflow_dispatch:
@@ -28,12 +28,19 @@ jobs:
         with:
           ref: ${{ github.event.inputs.commitHash }}
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           registry-url: https://npm.pkg.github.com
           scope: '@vetching-corporation'
+          cache: 'pnpm'
 
       - name: Parse Package Version
         id: package-version
@@ -69,12 +76,14 @@ jobs:
         id: publish
         run: |
           (
-            cd packages/client
-            npm publish
+            cd packages/client && \
+            pnpm install && \
+            pnpm publish
           )
           (
-            cd packages/cli
-            npm publish
+            cd packages/cli && \
+            pnpm install && \
+            pnpm publish
           )
 
       - name: Print output
@@ -82,35 +91,6 @@ jobs:
           THE_OUTPUT: '${{ toJson(steps.publish.outputs) }}'
         run: |
           echo "$THE_OUTPUT"
-
-      # TODO de-duplicate (currently duplicated in release-*.yml)
-      # Docs https://octokit.github.io/rest.js/v20#git-create-tag
-      - name: Create a tag on prisma-engines repository
-        uses: actions/github-script@v7
-        id: tag-prisma-engines
-        env:
-          REPO_NAME: 'prisma-engines'
-          TAG_NAME: '${{ steps.publish.outputs.prismaVersion }}'
-          COMMIT_HASH: '${{ steps.publish.outputs.enginesCommitHash }}'
-        with:
-          result-encoding: string
-          github-token: ${{ secrets.BOT_TOKEN }}
-          script: |
-            const commitNewTag = await github.rest.git.createTag({
-              owner: 'prisma',
-              repo: '${{ env.REPO_NAME }}',
-              tag: '${{ env.TAG_NAME }}',
-              message: '${{ env.TAG_NAME }}',
-              object: '${{ env.COMMIT_HASH }}',
-              type: 'commit',
-            })
-
-            await github.rest.git.createRef({
-              owner: 'prisma',
-              repo: '${{ env.REPO_NAME }}',
-              ref: `refs/tags/${{ env.TAG_NAME }}`,
-              sha: commitNewTag.data.sha,
-            })
 
   # We also have `sendSlackMessage()` in publish.ts
   # It uses the #feed-prisma-releases channel and adds more information
