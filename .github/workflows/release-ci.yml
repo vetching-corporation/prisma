@@ -1,5 +1,5 @@
 name: npm - Release Prisma
-run-name: npm - Release Prisma ${{ github.event.inputs.packageVersion }}
+run-name: npm - Release Prisma ${{ inputs.packageVersion }}${{ github.event.inputs.commitHash && '-' || '' }}${{ inputs.commitHash }}
 
 on:
   workflow_dispatch:
