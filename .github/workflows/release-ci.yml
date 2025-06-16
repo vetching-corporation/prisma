@@ -74,6 +74,8 @@ jobs:
 
       - name: Publish all packages to npm
         id: publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           (
             cd packages/client && \
