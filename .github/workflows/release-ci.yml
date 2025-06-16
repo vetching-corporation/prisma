@@ -55,7 +55,7 @@ jobs:
           PACKAGE_VERSION="${{ steps.package-version.outputs.PACKAGE_VERSION }}"
 
           CLIENT_DIR="packages/client"
-          CLI_DIR="package/cli"
+          CLI_DIR="packages/cli"
 
           # Client package.json
           jq --arg version "$PACKAGE_VERSION" '.version=$version' "$CLIENT_DIR/package.json" > "$CLIENT_DIR/package-temp.json"
