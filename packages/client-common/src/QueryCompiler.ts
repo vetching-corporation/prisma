@@ -17,8 +17,8 @@ export type CompactedBatchResponse = {
 }
 
 export type QueryCompiler = {
-  compile(request: string): string
-  compileBatch(batchRequest: string): BatchResponse
+  compile(request: string, dynamicSchema: string): string
+  compileBatch(batchRequest: string, dynamicSchema: string): BatchResponse
 }
 
 export type QueryCompilerOptions = {
