@@ -55,13 +55,13 @@
   },
   "dependencies": {
     "@prisma/client-generator-registry": "workspace:*",
-    "@prisma/config": "workspace:*",
     "@prisma/debug": "workspace:*",
     "@prisma/driver-adapter-utils": "workspace:*",
     "@prisma/engines-version": "6.9.0-10.81e4af48011447c3cc503a190e86995b66d2a28e",
     "@prisma/generator": "workspace:*",
     "@prisma/get-platform": "workspace:*",
     "@prisma/internals": "workspace:*",
+    "@vetching-corporation/prisma-config": "workspace:*",
     "prompts": "2.4.2"
   },
   "scripts": {

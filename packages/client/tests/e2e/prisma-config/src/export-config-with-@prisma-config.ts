@@ -1,4 +1,4 @@
-import type { PrismaConfig } from '@prisma/config'
+import type { PrismaConfig } from '@vetching-corporation/prisma-config'
 
 export default {
   earlyAccess: true,

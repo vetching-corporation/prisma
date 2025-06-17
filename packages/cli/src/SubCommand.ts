@@ -4,8 +4,8 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 import { getCommand } from '@antfu/ni'
-import type { PrismaConfigInternal } from '@prisma/config'
 import type { Command } from '@prisma/internals'
+import type { PrismaConfigInternal } from '@vetching-corporation/prisma-config'
 import { command } from 'execa'
 import { dim } from 'kleur/colors'
 

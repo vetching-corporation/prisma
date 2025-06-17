@@ -416,12 +416,12 @@ importers:
 
   packages/cli:
     dependencies:
-      '@prisma/config':
-        specifier: 6.9.0
-        version: 6.9.0
       '@prisma/engines':
-        specifier: 6.9.0
-        version: 6.9.0
+        specifier: workspace:*
+        version: link:../engines
+      '@vetching-corporation/prisma-config':
+        specifier: workspace:*
+        version: link:../config
     devDependencies:
       '@antfu/ni':
         specifier: 0.21.12
@@ -678,9 +678,6 @@ importers:
       '@prisma/client-generator-ts':
         specifier: workspace:*
         version: link:../client-generator-ts
-      '@prisma/config':
-        specifier: workspace:*
-        version: link:../config
       '@prisma/debug':
         specifier: workspace:*
         version: link:../debug
@@ -765,6 +762,9 @@ importers:
       '@types/pg':
         specifier: 8.11.11
         version: 8.11.11
+      '@vetching-corporation/prisma-config':
+        specifier: workspace:*
+        version: link:../config
       '@vetching-corporation/prisma-query-compiler-wasm':
         specifier: 6.9.0-3.6029b4c72fb0c888f77d7559bd6953617e0ff355
         version: 6.9.0-3.6029b4c72fb0c888f77d7559bd6953617e0ff355
@@ -1548,9 +1548,6 @@ importers:
 
   packages/internals:
     dependencies:
-      '@prisma/config':
-        specifier: workspace:*
-        version: link:../config
       '@prisma/debug':
         specifier: workspace:*
         version: link:../debug
@@ -1584,6 +1581,9 @@ importers:
       '@prisma/schema-files-loader':
         specifier: workspace:*
         version: link:../schema-files-loader
+      '@vetching-corporation/prisma-config':
+        specifier: workspace:*
+        version: link:../config
       arg:
         specifier: 5.0.2
         version: 5.0.2
@@ -1744,9 +1744,6 @@ importers:
       '@prisma/client-generator-registry':
         specifier: workspace:*
         version: link:../client-generator-registry
-      '@prisma/config':
-        specifier: workspace:*
-        version: link:../config
       '@prisma/debug':
         specifier: workspace:*
         version: link:../debug
@@ -1765,6 +1762,9 @@ importers:
       '@prisma/internals':
         specifier: workspace:*
         version: link:../internals
+      '@vetching-corporation/prisma-config':
+        specifier: workspace:*
+        version: link:../config
       prompts:
         specifier: 2.4.2
         version: 2.4.2
@@ -3321,23 +3321,8 @@ packages:
     peerDependencies:
       prettier: '*'
 
-  '@prisma/config@6.9.0':
-    resolution: {integrity: sha512-Wcfk8/lN3WRJd5w4jmNQkUwhUw0eksaU/+BlAJwPQKW10k0h0LC9PD/6TQFmqKVbHQL0vG2z266r0S1MPzzhbA==}
-
-  '@prisma/debug@6.9.0':
-    resolution: {integrity: sha512-bFeur/qi/Q+Mqk4JdQ3R38upSYPebv5aOyD1RKywVD+rAMLtRkmTFn28ZuTtVOnZHEdtxnNOCH+bPIeSGz1+Fg==}
-
   '@prisma/engines-version@6.9.0-10.81e4af48011447c3cc503a190e86995b66d2a28e':
     resolution: {integrity: sha512-Qp9gMoBHgqhKlrvumZWujmuD7q4DV/gooEyPCLtbkc13EZdSz2RsGUJ5mHb3RJgAbk+dm6XenqG7obJEhXcJ6Q==}
-
-  '@prisma/engines@6.9.0':
-    resolution: {integrity: sha512-im0X0bwDLA0244CDf8fuvnLuCQcBBdAGgr+ByvGfQY9wWl6EA+kRGwVk8ZIpG65rnlOwtaWIr/ZcEU5pNVvq9g==}
-
-  '@prisma/fetch-engine@6.9.0':
-    resolution: {integrity: sha512-PMKhJdl4fOdeE3J3NkcWZ+tf3W6rx3ht/rLU8w4SXFRcLhd5+3VcqY4Kslpdm8osca4ej3gTfB3+cSk5pGxgFg==}
-
-  '@prisma/get-platform@6.9.0':
-    resolution: {integrity: sha512-/B4n+5V1LI/1JQcHp+sUpyRT1bBgZVPHbsC4lt4/19Xp4jvNIVcq5KYNtQDk5e/ukTSjo9PZVAxxy9ieFtlpTQ==}
 
   '@prisma/mini-proxy@0.9.5':
     resolution: {integrity: sha512-0MLaxUjGbZGJGx9fIy1kbAH65hcZHCP6yes8xCTVcWumo64uzAxuvZdf5l1EPCZrDnj+iZNAy0U364oOAN+gXQ==}
@@ -9619,30 +9604,7 @@ snapshots:
       make-synchronized: 0.4.2
       prettier: 3.5.3
 
-  '@prisma/config@6.9.0':
-    dependencies:
-      jiti: 2.4.2
-
-  '@prisma/debug@6.9.0': {}
-
   '@prisma/engines-version@6.9.0-10.81e4af48011447c3cc503a190e86995b66d2a28e': {}
-
-  '@prisma/engines@6.9.0':
-    dependencies:
-      '@prisma/debug': 6.9.0
-      '@prisma/engines-version': 6.9.0-10.81e4af48011447c3cc503a190e86995b66d2a28e
-      '@prisma/fetch-engine': 6.9.0
-      '@prisma/get-platform': 6.9.0
-
-  '@prisma/fetch-engine@6.9.0':
-    dependencies:
-      '@prisma/debug': 6.9.0
-      '@prisma/engines-version': 6.9.0-10.81e4af48011447c3cc503a190e86995b66d2a28e
-      '@prisma/get-platform': 6.9.0
-
-  '@prisma/get-platform@6.9.0':
-    dependencies:
-      '@prisma/debug': 6.9.0
 
   '@prisma/mini-proxy@0.9.5': {}
 

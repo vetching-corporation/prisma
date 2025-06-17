@@ -1,5 +1,5 @@
-import { defaultTestConfig } from '@prisma/config'
 import { DbDrop, DbPush } from '@prisma/migrate'
+import { defaultTestConfig } from '@vetching-corporation/prisma-config'
 
 import { MemoryTestDir } from './MemoryTestDir'
 

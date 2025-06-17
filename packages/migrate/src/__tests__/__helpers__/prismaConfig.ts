@@ -1,6 +1,6 @@
-import { defineConfig, PrismaConfigInternal } from '@prisma/config'
-import { PrismaMigrateConfigShape } from '@prisma/config/src/PrismaConfig'
 import type { BaseContext } from '@prisma/get-platform'
+import { defineConfig, PrismaConfigInternal } from '@vetching-corporation/prisma-config'
+import { PrismaMigrateConfigShape } from '@vetching-corporation/prisma-config/src/PrismaConfig'
 
 import driverAdapters, { currentDriverAdapterName } from './driverAdapters'
 
