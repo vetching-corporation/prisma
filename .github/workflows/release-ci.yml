@@ -90,13 +90,14 @@ jobs:
           mv "$CLIENT_DIR/package-temp.json" "$CLIENT_DIR/package.json"
 
           # CLI package.json
-          jq --arg version "$PACKAGE_VERSION" '.version=$version | .dependencies["@vetching-corporation/prisma-config"]=$version' "$CLI_DIR/package.json" > "$CLI_DIR/package-temp.json"
+          jq --arg version "$PACKAGE_VERSION" '.version=$version | .dependencies["@vetching-corporation/prisma-config"]=workspace:$version' "$CLI_DIR/package.json" > "$CLI_DIR/package-temp.json"
           mv "$CLI_DIR/package-temp.json" "$CLI_DIR/package.json"
 
       - name: Install dependencies
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          pnpm install --lockfile-only && \
           pnpm install && \
           pnpm build
 
