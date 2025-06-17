@@ -46,10 +46,28 @@ jobs:
           BASE_VERSION="${{ github.event.inputs.packageVersion }}"
           COMMIT_HASH="${{ github.event.inputs.commitHash }}"
 
+          # 커밋 해시가 없으면 기본 버전 사용 (eg. "6.9.0")
           if [ -z "$COMMIT_HASH" ]; then
             echo "PACKAGE_VERSION=${BASE_VERSION}" >> $GITHUB_OUTPUT
+
+          # 커밋 해시가 있으면 dev 버전 사용 (eg. "6.9.0-{sequence}.{commit-hash}")
           else
-            echo "PACKAGE_VERSION=${BASE_VERSION}-${COMMIT_HASH}" >> $GITHUB_OUTPUT
+            results=$(
+              curl \
+                -sSfL \
+                -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+                -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/orgs/vetching-corporation/packages/npm/prisma-client/versions"
+            )
+            SEQUENCE=$(echo "$results" | jq -r --arg base "$BASE_VERSION" '
+              [.[].name                                       # 모든 tag 이름
+              | select(startswith($base + "-"))               # base-prefix 필터
+              | capture("^" + $base + "-(?<seq>[0-9]+)\\.")   # seq 추출
+              | (.seq | tonumber)                             # 숫자로 변환
+              ] | max // 0 | . + 1                            # 최대값(+1), 없으면 1
+            ')
+
+            echo "PACKAGE_VERSION=${BASE_VERSION}-${SEQUENCE}.${COMMIT_HASH}" >> $GITHUB_OUTPUT
           fi
 
       - name: Install jq
@@ -59,15 +77,20 @@ jobs:
         run: |
           PACKAGE_VERSION="${{ steps.package-version.outputs.PACKAGE_VERSION }}"
 
+          CONFIG_DIR="packages/config"
           CLIENT_DIR="packages/client"
           CLI_DIR="packages/cli"
+
+          # Config package.json
+          jq --arg version "$PACKAGE_VERSION" '.version=$version' "$CONFIG_DIR/package.json" > "$CONFIG_DIR/package-temp.json"
+          mv "$CONFIG_DIR/package-temp.json" "$CONFIG_DIR/package.json"
 
           # Client package.json
           jq --arg version "$PACKAGE_VERSION" '.version=$version' "$CLIENT_DIR/package.json" > "$CLIENT_DIR/package-temp.json"
           mv "$CLIENT_DIR/package-temp.json" "$CLIENT_DIR/package.json"
 
           # CLI package.json
-          jq --arg version "$PACKAGE_VERSION" '.version=$version' "$CLI_DIR/package.json" > "$CLI_DIR/package-temp.json"
+          jq --arg version "$PACKAGE_VERSION" '.version=$version | .dependencies["@vetching-corporation/prisma-config"]=$version' "$CLI_DIR/package.json" > "$CLI_DIR/package-temp.json"
           mv "$CLI_DIR/package-temp.json" "$CLI_DIR/package.json"
 
       - name: Install dependencies
@@ -82,6 +105,10 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          (
+            cd packages/config && \
+            pnpm publish --no-git-checks
+          )
           (
             cd packages/client && \
             pnpm publish --no-git-checks
