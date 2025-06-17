@@ -178,7 +178,7 @@
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
-    "@prisma/config": "6.9.0",
+    "@prisma/engines": "6.9.0",
     "@vetching-corporation/prisma-config": "workspace:*"
   },
   "peerDependencies": {
