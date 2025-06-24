@@ -168,7 +168,7 @@ export class ClientEngine implements Engine<undefined> {
     }
 
     const adapter = await this.adapterPromise
-    const connectionInfo = adapter?.getConnectionInfo?.() ?? {}
+    const connectionInfo = adapter?.getConnectionInfo?.() ?? { supportsRelationJoins: false }
 
     try {
       this.#withLocalPanicHandler(() => {
@@ -344,17 +344,17 @@ export class ClientEngine implements Engine<undefined> {
       throw this.#transformRequestError(err)
     })
 
-    let queryPlanString: string
+    let queryPlan: QueryPlanNode
     try {
-      queryPlanString = this.#withLocalPanicHandler(() => this.queryCompiler!.compile(queryStr, dynamicSchemaStr))
+      queryPlan = this.#withLocalPanicHandler(() =>
+        this.queryCompiler!.compile(queryStr, dynamicSchemaStr),
+      ) as QueryPlanNode
     } catch (error) {
       throw this.#transformCompileError(error)
     }
 
     try {
-      const queryPlan: QueryPlanNode = JSON.parse(queryPlanString)
-
-      debug(`query plan created`, queryPlanString)
+      debug(`query plan created`, queryPlan)
 
       const queryable = interactiveTransaction
         ? transactionManager.getTransaction(interactiveTransaction, 'query')

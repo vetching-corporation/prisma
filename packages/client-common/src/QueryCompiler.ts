@@ -9,7 +9,7 @@ export type MultiBatchResponse = {
 
 export type CompactedBatchResponse = {
   type: 'compacted'
-  plan: object
+  plan: {}
   arguments: Record<string, {}>[]
   nestedSelection: string[]
   keys: string[]
@@ -17,7 +17,7 @@ export type CompactedBatchResponse = {
 }
 
 export type QueryCompiler = {
-  compile(request: string, dynamicSchema: string): string
+  compile(request: string, dynamicSchema: string): {}
   compileBatch(batchRequest: string, dynamicSchema: string): BatchResponse
 }
 

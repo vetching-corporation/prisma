@@ -1,7 +1,7 @@
 {
-  "name": "@prisma/adapter-pg-worker",
+  "name": "@prisma/adapter-mssql",
   "version": "0.0.0",
-  "description": "Prisma's driver adapter for \"@prisma/pg-worker\"",
+  "description": "Prisma's driver adapter for \"mssql\"",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -20,7 +20,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/prisma/prisma.git",
-    "directory": "packages/adapter-pg"
+    "directory": "packages/adapter-mssql"
   },
   "scripts": {
     "dev": "DEV=true tsx helpers/build.ts",
@@ -32,21 +32,19 @@
     "README.md"
   ],
   "keywords": [],
-  "author": "Pierre-Antoine Mills <mills@prisma.io>",
+  "author": "Jacek Malec <jacek@prisma.io>",
   "license": "Apache-2.0",
   "sideEffects": false,
   "dependencies": {
     "@prisma/driver-adapter-utils": "workspace:*",
-    "postgres-array": "3.0.4"
+    "mssql": "^11.0.1",
+    "async-mutex": "0.5.0"
   },
   "devDependencies": {
-    "@prisma/pg-worker": "workspace:*",
+    "@types/mssql": "9.1.7",
     "@swc/core": "1.11.5",
     "@swc/jest": "0.2.37",
     "jest": "29.7.0",
     "jest-junit": "16.0.0"
-  },
-  "peerDependencies": {
-    "@prisma/pg-worker": "^6.0.0"
   }
 }
