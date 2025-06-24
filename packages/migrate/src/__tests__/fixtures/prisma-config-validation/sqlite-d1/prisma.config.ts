@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { defineConfig } from '@prisma/config'
+import { defineConfig } from '@vetching-corporation/prisma-config'
 import { PrismaD1HTTP } from '@prisma/adapter-d1'
 
 type Env = {

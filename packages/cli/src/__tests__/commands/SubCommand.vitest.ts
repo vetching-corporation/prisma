@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import * as ni from '@antfu/ni'
-import { defaultTestConfig } from '@prisma/config'
+import { defaultTestConfig } from '@vetching-corporation/prisma-config'
 import * as execa from 'execa'
 import { copy } from 'fs-extra'
 import { beforeEach, expect, test, vi } from 'vitest'

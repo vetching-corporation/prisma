@@ -1,5 +1,5 @@
-name: npm - release to dev/integration
-run-name: npm - release from ${{ github.ref_name }} to dev/integration
+name: npm - Release Prisma
+run-name: npm - Release Prisma ${{ inputs.packageVersion }}${{ github.event.inputs.commitHash && '-' || '' }}${{ inputs.commitHash }}
 
 on:
   workflow_dispatch:
@@ -13,7 +13,6 @@ on:
 
 jobs:
   release:
-    timeout-minutes: 10
     runs-on: ubuntu-latest
 
     permissions:
@@ -28,12 +27,18 @@ jobs:
         with:
           ref: ${{ github.event.inputs.commitHash }}
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20.x'
           registry-url: https://npm.pkg.github.com
           scope: '@vetching-corporation'
+          cache: 'pnpm'
 
       - name: Parse Package Version
         id: package-version
@@ -41,10 +46,28 @@ jobs:
           BASE_VERSION="${{ github.event.inputs.packageVersion }}"
           COMMIT_HASH="${{ github.event.inputs.commitHash }}"
 
+          # 커밋 해시가 없으면 기본 버전 사용 (eg. "6.9.0")
           if [ -z "$COMMIT_HASH" ]; then
             echo "PACKAGE_VERSION=${BASE_VERSION}" >> $GITHUB_OUTPUT
+
+          # 커밋 해시가 있으면 dev 버전 사용 (eg. "6.9.0-{sequence}.{commit-hash}")
           else
-            echo "PACKAGE_VERSION=${BASE_VERSION}-${COMMIT_HASH}" >> $GITHUB_OUTPUT
+            results=$(
+              curl \
+                -sSfL \
+                -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+                -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/orgs/vetching-corporation/packages/npm/prisma-client/versions"
+            )
+            SEQUENCE=$(echo "$results" | jq -r --arg base "$BASE_VERSION" '
+              [.[].name                                       # 모든 tag 이름
+              | select(startswith($base + "-"))               # base-prefix 필터
+              | capture("^" + $base + "-(?<seq>[0-9]+)\\.")   # seq 추출
+              | (.seq | tonumber)                             # 숫자로 변환
+              ] | max // 0 | . + 1                            # 최대값(+1), 없으면 1
+            ')
+
+            echo "PACKAGE_VERSION=${BASE_VERSION}-${SEQUENCE}.${COMMIT_HASH}" >> $GITHUB_OUTPUT
           fi
 
       - name: Install jq
@@ -54,27 +77,46 @@ jobs:
         run: |
           PACKAGE_VERSION="${{ steps.package-version.outputs.PACKAGE_VERSION }}"
 
+          CONFIG_DIR="packages/config"
           CLIENT_DIR="packages/client"
-          CLI_DIR="package/cli"
+          CLI_DIR="packages/cli"
+
+          # Config package.json
+          jq --arg version "$PACKAGE_VERSION" '.version = $version' "$CONFIG_DIR/package.json" > "$CONFIG_DIR/package-temp.json"
+          mv "$CONFIG_DIR/package-temp.json" "$CONFIG_DIR/package.json"
 
           # Client package.json
-          jq --arg version "$PACKAGE_VERSION" '.version=$version' "$CLIENT_DIR/package.json" > "$CLIENT_DIR/package-temp.json"
+          jq --arg version "$PACKAGE_VERSION" '.version = $version' "$CLIENT_DIR/package.json" > "$CLIENT_DIR/package-temp.json"
           mv "$CLIENT_DIR/package-temp.json" "$CLIENT_DIR/package.json"
 
           # CLI package.json
-          jq --arg version "$PACKAGE_VERSION" '.version=$version' "$CLI_DIR/package.json" > "$CLI_DIR/package-temp.json"
+          jq --arg version "$PACKAGE_VERSION" '.version = $version | .dependencies["@vetching-corporation/prisma-config"] = "workspace:" + $version' "$CLI_DIR/package.json" > "$CLI_DIR/package-temp.json"
           mv "$CLI_DIR/package-temp.json" "$CLI_DIR/package.json"
+
+      - name: Install dependencies
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pnpm install --lockfile-only && \
+          pnpm install && \
+          pnpm build
 
       - name: Publish all packages to npm
         id: publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           (
-            cd packages/client
-            pnpm publish
+            cd packages/config && \
+            pnpm publish --no-git-checks
           )
           (
-            cd packages/cli
-            pnpm publish
+            cd packages/client && \
+            pnpm publish --no-git-checks
+          )
+          (
+            cd packages/cli && \
+            pnpm publish --no-git-checks
           )
 
       - name: Print output
@@ -82,35 +124,6 @@ jobs:
           THE_OUTPUT: '${{ toJson(steps.publish.outputs) }}'
         run: |
           echo "$THE_OUTPUT"
-
-      # TODO de-duplicate (currently duplicated in release-*.yml)
-      # Docs https://octokit.github.io/rest.js/v20#git-create-tag
-      - name: Create a tag on prisma-engines repository
-        uses: actions/github-script@v7
-        id: tag-prisma-engines
-        env:
-          REPO_NAME: 'prisma-engines'
-          TAG_NAME: '${{ steps.publish.outputs.prismaVersion }}'
-          COMMIT_HASH: '${{ steps.publish.outputs.enginesCommitHash }}'
-        with:
-          result-encoding: string
-          github-token: ${{ secrets.BOT_TOKEN }}
-          script: |
-            const commitNewTag = await github.rest.git.createTag({
-              owner: 'prisma',
-              repo: '${{ env.REPO_NAME }}',
-              tag: '${{ env.TAG_NAME }}',
-              message: '${{ env.TAG_NAME }}',
-              object: '${{ env.COMMIT_HASH }}',
-              type: 'commit',
-            })
-
-            await github.rest.git.createRef({
-              owner: 'prisma',
-              repo: '${{ env.REPO_NAME }}',
-              ref: `refs/tags/${{ env.TAG_NAME }}`,
-              sha: commitNewTag.data.sha,
-            })
 
   # We also have `sendSlackMessage()` in publish.ts
   # It uses the #feed-prisma-releases channel and adds more information

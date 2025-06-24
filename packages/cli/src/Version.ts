@@ -1,4 +1,3 @@
-import type { PrismaConfigInternal } from '@prisma/config'
 import { enginesVersion, getCliQueryEngineBinaryType } from '@prisma/engines'
 import { getBinaryTargetForCurrentPlatform } from '@prisma/get-platform'
 import {
@@ -15,6 +14,7 @@ import {
   loadSchemaContext,
   wasm,
 } from '@prisma/internals'
+import type { PrismaConfigInternal } from '@vetching-corporation/prisma-config'
 import { bold, dim, red } from 'kleur/colors'
 import os from 'os'
 import { match, P } from 'ts-pattern'

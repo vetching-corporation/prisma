@@ -35,6 +35,7 @@ export function createClassFile(context: GenerateContext, options: TSClientOptio
   const prismaClientClass = new PrismaClientClass(context, options.runtimeName)
 
   return `${jsDocHeader}
+import { AsyncLocalStorage } from 'async_hooks'
 ${stringifiedImports.join('\n')}
 
 ${clientConfig(context, options)}
