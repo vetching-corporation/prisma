@@ -75,10 +75,13 @@ function wasmBindgenRuntimeConfig(
   provider: DriverAdapterSupportedProvider,
   format: ModuleFormat,
 ): BuildOptions {
+  const wasmPackage =
+    type === 'compiler' ? '@vetching-corporation/prisma-query-compiler-wasm' : '@prisma/query-engine-wasm'
+
   return {
     format,
     name: `query_${type}_bg.${provider}`,
-    entryPoints: [`@prisma/query-${type}-wasm/${provider}/query_${type}_bg.js`],
+    entryPoints: [`${wasmPackage}/${provider}/query_${type}_bg.js`],
     outfile: `runtime/query_${type}_bg.${provider}`,
     outExtension: getOutExtension(format),
     minify: shouldMinify,
