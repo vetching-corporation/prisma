@@ -77,13 +77,19 @@ function mapObject(
       }
 
       case 'Object': {
-        if (node.serializedName !== null && !Object.hasOwn(data, node.serializedName)) {
+        // TODO :: Remove this once we have a proper solution for the issue
+        const serializedName =
+          node.serializedName && node.serializedName.length > 63
+            ? node.serializedName.slice(0, 63)
+            : node.serializedName
+
+        if (serializedName !== null && !Object.hasOwn(data, serializedName)) {
           throw new DataMapperError(
             `Missing data field (Object): '${name}'; ` + `node: ${JSON.stringify(node)}; data: ${JSON.stringify(data)}`,
           )
         }
 
-        const target = node.serializedName !== null ? data[node.serializedName] : data
+        const target = serializedName !== null ? data[serializedName] : data
         result[name] = mapArrayOrObject(target, node.fields, enums)
         break
       }
