@@ -446,6 +446,7 @@ export class ClientEngine implements Engine {
   ): Promise<{ data: T }> {
     debug(`sending request`)
     const queryStr = JSON.stringify(query)
+    const schemaRequestStr = JSON.stringify(query.schemaRequest ?? {})
 
     const { executor, queryCompiler } = await this.#ensureStarted().catch((err) => {
       throw this.#transformRequestError(err, queryStr)
@@ -456,7 +457,7 @@ export class ClientEngine implements Engine {
       queryPlan = this.#withLocalPanicHandler(() =>
         this.#withCompileSpan({
           queries: [query],
-          execute: () => queryCompiler.compile(queryStr) as QueryPlanNode,
+          execute: () => queryCompiler.compile(queryStr, schemaRequestStr) as QueryPlanNode,
         }),
       )
     } catch (error) {
@@ -496,6 +497,7 @@ export class ClientEngine implements Engine {
     const firstAction = queries[0].action
 
     const request = JSON.stringify(getBatchRequestPayload(queries, transaction))
+    const schemaRequest = JSON.stringify(queries[0].schemaRequest ?? {})
 
     const { executor, queryCompiler } = await this.#ensureStarted().catch((err) => {
       throw this.#transformRequestError(err, request)
@@ -506,7 +508,7 @@ export class ClientEngine implements Engine {
       batchResponse = this.#withLocalPanicHandler(() =>
         this.#withCompileSpan({
           queries,
-          execute: () => queryCompiler.compileBatch(request),
+          execute: () => queryCompiler.compileBatch(request, schemaRequest),
         }),
       )
     } catch (err) {

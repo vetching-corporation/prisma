@@ -1,9 +1,12 @@
 import type { IsolationLevel } from './Transaction'
 
+export type DynamicSchema = { from: string; to: string }
+
 export type JsonQuery = {
   modelName?: string
   action: JsonQueryAction
   query: JsonFieldSelection
+  schemaRequest?: Record<string, string>
 }
 
 export type JsonBatchQuery = {
