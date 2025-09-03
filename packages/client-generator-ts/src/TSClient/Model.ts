@@ -87,11 +87,13 @@ export class Model {
       ) {
         argsTypes.push(
           new ArgsTypeBuilder(this.type, this.context, action as DMMF.ModelAction)
+            .addDynamicSchemaArg()
             .addSchemaArgs(field.args)
             .createExport(),
         )
       } else if (action === 'createManyAndReturn') {
         const args = new ArgsTypeBuilder(this.type, this.context, action as DMMF.ModelAction)
+          .addDynamicSchemaArg()
           .addSelectArg(getSelectCreateManyAndReturnName(this.type.name))
           .addOmitArg()
           .addSchemaArgs(field.args)
@@ -105,6 +107,7 @@ export class Model {
         argsTypes.push(args.createExport())
       } else if (action === 'updateManyAndReturn') {
         const args = new ArgsTypeBuilder(this.type, this.context, action as DMMF.ModelAction)
+          .addDynamicSchemaArg()
           .addSelectArg(getSelectUpdateManyAndReturnName(this.type.name))
           .addOmitArg()
           .addSchemaArgs(field.args)
@@ -119,6 +122,7 @@ export class Model {
       } else if (action !== 'groupBy' && action !== 'aggregate') {
         argsTypes.push(
           new ArgsTypeBuilder(this.type, this.context, action as DMMF.ModelAction)
+            .addDynamicSchemaArg()
             .addSelectArg()
             .addOmitArg()
             .addIncludeArgIfHasRelations()
@@ -138,6 +142,7 @@ export class Model {
       }
       argsTypes.push(
         new ArgsTypeBuilder(fieldOutput, this.context)
+          .addDynamicSchemaArg()
           .addSelectArg()
           .addOmitArg()
           .addIncludeArgIfHasRelations()
@@ -150,6 +155,7 @@ export class Model {
 
     argsTypes.push(
       new ArgsTypeBuilder(this.type, this.context)
+        .addDynamicSchemaArg()
         .addSelectArg()
         .addOmitArg()
         .addIncludeArgIfHasRelations()
@@ -182,6 +188,10 @@ export class Model {
 
 
 export type ${groupByArgsName}<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * The schema to use for the query. ('hospital_template' -> '{schema}')
+   */
+  schema?: string
 ${indent(
   groupByRootField.args
     .map((arg) => {
@@ -300,6 +310,10 @@ ${
 }
 
 export type ${aggregateArgsName}<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * The schema to use for the query. ('hospital_template' -> '{schema}')
+   */
+  schema?: string
 ${indent(
   aggregateRootField.args
     .map((arg) => {

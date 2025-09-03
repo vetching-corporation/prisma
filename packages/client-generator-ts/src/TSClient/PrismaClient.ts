@@ -6,6 +6,7 @@ import indent from 'indent-string'
 import { runtimeImport, runtimeImportedType } from '../utils/runtimeImport'
 import { TAB_SIZE } from './constants'
 import { GenerateContext } from './GenerateContext'
+import { RequestContext } from './RequestContext'
 import { TSClientOptions } from './TSClient'
 import * as tsx from './utils/type-builders'
 
@@ -286,6 +287,8 @@ export class PrismaClientClass {
     const { dmmf } = this.context
 
     return `\
+${new RequestContext().toTS()}
+
 export type LogOptions<ClientOptions extends Prisma.PrismaClientOptions> =
   'log' extends keyof ClientOptions ? ClientOptions['log'] extends Array<Prisma.LogLevel | Prisma.LogDefinition> ? Prisma.GetEvents<ClientOptions['log']> : never : never
 
@@ -318,6 +321,25 @@ export interface PrismaClient<
    * Disconnect from the database
    */
   $disconnect(): runtime.Types.Utils.JsPromise<void>;
+
+  /**
+   * Returns the request context (AsyncLocalStorage)
+   * @returns RequestContext
+   */
+  $context(): RequestContext;
+
+  /**
+   * Set the global schema for the client.
+   * @param schema - The schema to set (eg. \`hospital2\`)
+   * @param cb - Express middleware function (eg. \`next()\`)
+   * 
+   * @example
+   * // In express middleware, it could be used like this:
+   * app.use((_req, _res, next) => {
+   *   prisma.$setGlobalSchema('hospital2', next)
+   * })
+   */
+  $setGlobalSchema<R>(schema: string, cb: () => R): R
 
 ${[
   executeRawDefinition(this.context),

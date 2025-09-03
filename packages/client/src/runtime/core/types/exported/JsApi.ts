@@ -32,6 +32,7 @@ export interface JsonConvertible {
 }
 
 export type JsArgs = {
+  schema?: string
   select?: Selection
   include?: Selection
   omit?: Omission
