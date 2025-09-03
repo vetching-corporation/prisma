@@ -6,6 +6,7 @@ import { CallSite } from '../../utils/CallSite'
 import { isDate, isValidDate } from '../../utils/date'
 import { isDecimalJsLike } from '../../utils/decimalJsLike'
 import {
+  DynamicSchema,
   JsonArgumentValue,
   JsonFieldSelection,
   JsonQuery,
@@ -75,6 +76,7 @@ export type SerializeParams = {
   errorFormat: ErrorFormat
   previewFeatures: string[]
   globalOmit?: GlobalOmitOptions
+  dynamicSchemas?: DynamicSchema[]
 }
 
 const STRICT_UNDEFINED_ERROR_MESSAGE = 'explicitly `undefined` values are not allowed'
@@ -91,6 +93,7 @@ export function serializeJsonQuery({
   clientVersion,
   previewFeatures,
   globalOmit,
+  dynamicSchemas,
 }: SerializeParams): JsonQuery {
   const context = new SerializeContext({
     runtimeDataModel,
@@ -107,10 +110,12 @@ export function serializeJsonQuery({
     previewFeatures,
     globalOmit,
   })
+  const { schema, ...extractedArgs } = args ?? {}
   return {
     modelName,
     action: jsActionToProtocolAction[action],
-    query: serializeFieldSelection(args, context),
+    query: serializeFieldSelection(extractedArgs, context),
+    schemaRequest: serializeSchemaRequest(dynamicSchemas, schema),
   }
 }
 
@@ -152,6 +157,24 @@ function serializeSelectionSet(
   }
 
   return createImplicitSelection(context, include, omit)
+}
+
+function serializeSchemaRequest(
+  dynamicSchemas: DynamicSchema[] = [],
+  forceSchema?: string,
+): Record<string, string> | undefined {
+  dynamicSchemas = dynamicSchemas?.map((schema) => ({ ...schema })) ?? []
+  const serializedSchemas = Object.fromEntries(dynamicSchemas.map((schema) => [schema.from, schema.to]))
+
+  if (forceSchema && /^hospital([1-9]{1})([0-9]+)?$/.test(forceSchema)) {
+    serializedSchemas['hospital_template'] = forceSchema
+  }
+
+  if (Object.keys(serializedSchemas).length === 0) {
+    return undefined
+  }
+
+  return serializedSchemas
 }
 
 function createImplicitSelection(
