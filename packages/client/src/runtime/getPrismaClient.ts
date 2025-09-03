@@ -4,7 +4,7 @@ import { clearLogs, Debug } from '@prisma/debug'
 import type { SqlDriverAdapterFactory } from '@prisma/driver-adapter-utils'
 import { version as enginesVersion } from '@prisma/engines-version/package.json'
 import { ExtendedSpanOptions, logger, TracingHelper, tryLoadEnvs } from '@prisma/internals'
-import { AsyncResource } from 'async_hooks'
+import { AsyncLocalStorage, AsyncResource } from 'async_hooks'
 import { EventEmitter } from 'events'
 import fs from 'fs'
 import path from 'path'
@@ -17,7 +17,7 @@ import {
   PrismaClientValidationError,
 } from '.'
 import { addProperty, createCompositeProxy, removeProperties } from './core/compositeProxy'
-import { BatchTransactionOptions, Engine, EngineConfig, Options } from './core/engines'
+import { BatchTransactionOptions, DynamicSchema, Engine, EngineConfig, Options } from './core/engines'
 import { AccelerateEngineConfig } from './core/engines/accelerate/AccelerateEngine'
 import { AccelerateExtensionFetchDecorator } from './core/engines/common/Engine'
 import { EngineEvent, LogEmitter } from './core/engines/common/types/Events'
@@ -90,6 +90,11 @@ export type ErrorFormat = 'pretty' | 'colorless' | 'minimal'
 
 export type Datasource = { url?: string }
 export type Datasources = { [name in string]: Datasource }
+
+export type RequestContextPayload = {
+  dynamicSchemas?: DynamicSchema[]
+}
+export type RequestContext = AsyncLocalStorage<RequestContextPayload>
 
 export type PrismaClientOptions = {
   /**
@@ -181,6 +186,8 @@ export type InternalRequestParams = {
   middlewareArgsMapper?: MiddlewareArgsMapper<unknown, unknown>
   /** Used for Accelerate client extension via Data Proxy */
   customDataProxyFetch?: AccelerateExtensionFetchDecorator
+  /** Used to get the request context */
+  requestCtx: RequestContextPayload
 } & Omit<QueryMiddlewareParams, 'runInTransaction'>
 
 export type MiddlewareArgsMapper<RequestArgs, MiddlewareArgs> = {
@@ -259,6 +266,7 @@ export function getPrismaClient(config: GetPrismaClientConfig) {
      */
     _appliedParent: PrismaClient
     _createPrismaPromise = createPrismaPromiseFactory()
+    _requestContext: RequestContext = new AsyncLocalStorage<RequestContextPayload>()
 
     constructor(optionsArg?: PrismaClientOptions) {
       config = optionsArg?.__internal?.configOverride?.(config) ?? config
@@ -447,6 +455,39 @@ export function getPrismaClient(config: GetPrismaClientConfig) {
       return 'PrismaClient'
     }
 
+    /**
+     * Returns the request context (AsyncLocalStorage)
+     * @returns RequestContext
+     */
+    $context(): RequestContext {
+      return this._requestContext
+    }
+
+    /**
+     * Set the global schema for the client.
+     * @param schema - The schema to set (eg. `hospital2`)
+     * @param cb - Express middleware function (eg. `next()`)
+     *
+     * @example
+     * // In express middleware, it could be used like this:
+     * app.use((_req, _res, next) => {
+     *   prisma.$setGlobalSchema('hospital2', next)
+     * })
+     */
+    $setGlobalSchema<R>(schema: string, cb: () => R): R {
+      return this._requestContext.run(
+        {
+          dynamicSchemas: [
+            {
+              from: 'hospital_template',
+              to: schema,
+            },
+          ],
+        },
+        cb,
+      )
+    }
+
     $on<E extends ExtendedEventType>(eventType: E, callback: EventCallback<E>): PrismaClient {
       if (eventType === 'beforeExit') {
         this._engine.onBeforeExit(callback as EventCallback<'beforeExit'>)
@@ -503,6 +544,7 @@ export function getPrismaClient(config: GetPrismaClientConfig) {
         callsite: getCallSite(this._errorFormat),
         dataPath: [],
         middlewareArgsMapper,
+        requestCtx: this._requestContext.getStore() ?? {},
       })
     }
 
@@ -578,6 +620,7 @@ Or read our docs at https://www.prisma.io/docs/concepts/components/prisma-client
           argsMapper: rawCommandArgsMapper,
           callsite: getCallSite(this._errorFormat),
           transaction: transaction,
+          requestCtx: this._requestContext.getStore() ?? {},
         })
       })
     }
@@ -602,6 +645,7 @@ Or read our docs at https://www.prisma.io/docs/concepts/components/prisma-client
         callsite: getCallSite(this._errorFormat),
         dataPath: [],
         middlewareArgsMapper,
+        requestCtx: this._requestContext.getStore() ?? {},
       })
     }
 
@@ -867,6 +911,7 @@ Or read our docs at https://www.prisma.io/docs/concepts/components/prisma-client
       unpacker,
       otelParentCtx,
       customDataProxyFetch,
+      requestCtx,
     }: InternalRequestParams) {
       try {
         // execute argument transformation before execution
@@ -889,6 +934,7 @@ Or read our docs at https://www.prisma.io/docs/concepts/components/prisma-client
             clientVersion: this._clientVersion,
             previewFeatures: this._previewFeatures,
             globalOmit: this._globalOmit,
+            dynamicSchemas: requestCtx.dynamicSchemas,
           }),
         )
 
