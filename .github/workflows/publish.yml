@@ -77,21 +77,11 @@ jobs:
         run: |
           PACKAGE_VERSION="${{ steps.package-version.outputs.PACKAGE_VERSION }}"
 
-          CONFIG_DIR="packages/config"
           CLIENT_DIR="packages/client"
-          CLI_DIR="packages/cli"
-
-          # Config package.json
-          jq --arg version "$PACKAGE_VERSION" '.version = $version' "$CONFIG_DIR/package.json" > "$CONFIG_DIR/package-temp.json"
-          mv "$CONFIG_DIR/package-temp.json" "$CONFIG_DIR/package.json"
 
           # Client package.json
-          jq --arg version "$PACKAGE_VERSION" '.version = $version' "$CLIENT_DIR/package.json" > "$CLIENT_DIR/package-temp.json"
+          jq --arg version "$PACKAGE_VERSION" '.name = "@vetching-corporation/prisma-client" | .version = $version' "$CLIENT_DIR/package.json" > "$CLIENT_DIR/package-temp.json"
           mv "$CLIENT_DIR/package-temp.json" "$CLIENT_DIR/package.json"
-
-          # CLI package.json
-          jq --arg version "$PACKAGE_VERSION" '.version = $version | .dependencies["@vetching-corporation/prisma-config"] = "workspace:" + $version' "$CLI_DIR/package.json" > "$CLI_DIR/package-temp.json"
-          mv "$CLI_DIR/package-temp.json" "$CLI_DIR/package.json"
 
       - name: Install dependencies
         env:
@@ -106,18 +96,8 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          (
-            cd packages/config && \
-            pnpm publish --no-git-checks
-          )
-          (
-            cd packages/client && \
-            pnpm publish --no-git-checks
-          )
-          (
-            cd packages/cli && \
-            pnpm publish --no-git-checks
-          )
+          cd packages/client && \
+          pnpm publish --no-git-checks
 
       - name: Print output
         env:
