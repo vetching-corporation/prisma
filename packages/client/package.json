@@ -255,7 +255,7 @@
     "@prisma/internals": "workspace:*",
     "@prisma/migrate": "workspace:*",
     "@prisma/mini-proxy": "0.9.5",
-    "@prisma/query-compiler-wasm": "6.16.0-5.66f07015fb4a0f9195e6e97dca56186a2f4cad17",
+    "@prisma/query-compiler-wasm": "npm:@vetching-corporation/prisma-query-compiler-wasm@6.16.0-1.ee0dedd5c171b73396085facdf2de820a890a017",
     "@prisma/query-engine-wasm": "6.16.0-5.66f07015fb4a0f9195e6e97dca56186a2f4cad17",
     "@prisma/ts-builders": "workspace:*",
     "@snaplet/copycat": "6.0.0",

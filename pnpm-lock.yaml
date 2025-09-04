@@ -689,8 +689,8 @@ importers:
         specifier: 0.9.5
         version: 0.9.5
       '@prisma/query-compiler-wasm':
-        specifier: 6.16.0-5.66f07015fb4a0f9195e6e97dca56186a2f4cad17
-        version: 6.16.0-5.66f07015fb4a0f9195e6e97dca56186a2f4cad17
+        specifier: npm:@vetching-corporation/prisma-query-compiler-wasm@6.16.0-1.ee0dedd5c171b73396085facdf2de820a890a017
+        version: '@vetching-corporation/prisma-query-compiler-wasm@6.16.0-1.ee0dedd5c171b73396085facdf2de820a890a017'
       '@prisma/query-engine-wasm':
         specifier: 6.16.0-5.66f07015fb4a0f9195e6e97dca56186a2f4cad17
         version: 6.16.0-5.66f07015fb4a0f9195e6e97dca56186a2f4cad17
@@ -3218,9 +3218,6 @@ packages:
   '@prisma/prisma-schema-wasm@6.16.0-5.66f07015fb4a0f9195e6e97dca56186a2f4cad17':
     resolution: {integrity: sha512-+vJl3Q3bauvUJqJZ62qKqujgW23go5ezPXbudjbg6mQWVN2Az9tXyRgKu9Xdo35NBSyRglwcuo1N9WU8t5D0RA==}
 
-  '@prisma/query-compiler-wasm@6.16.0-5.66f07015fb4a0f9195e6e97dca56186a2f4cad17':
-    resolution: {integrity: sha512-VP1COMDwFt5c0ZsUwx35M64UZ9ROj9yce0l59ObmMmgejFauwdHymlBXTZd2B0tvEu5w4lISoHmTG/gVXJVrnQ==}
-
   '@prisma/query-engine-wasm@6.16.0-5.66f07015fb4a0f9195e6e97dca56186a2f4cad17':
     resolution: {integrity: sha512-euTMjyl3N+h+D+TBqcwHbUfQB+ThUbACK1QItCaNlNDkrB6k/uRx5296e8w8yIH3RDcnvPu9AkMCZblD7p5DAQ==}
 
@@ -3785,6 +3782,9 @@ packages:
     resolution: {integrity: sha512-JwoxboBh7Oz1v38tPbkrZ62ZXNHAk9bJ7c9x0eI5zBfBnBYGhURdbnh7Z4smN/MV48Y5OCcZb58n972UtbazsA==}
     peerDependencies:
       typescript: '*'
+
+  '@vetching-corporation/prisma-query-compiler-wasm@6.16.0-1.ee0dedd5c171b73396085facdf2de820a890a017':
+    resolution: {integrity: sha512-YcIfh2k3pi6leUYKDVNDWZ2E1lmj2dNhwwKoIdu4bHX6yjGQMjyXrH0GwZaVFh0o7uJxLXzX8FOMCpfqw3X8MQ==, tarball: https://npm.pkg.github.com/download/@vetching-corporation/prisma-query-compiler-wasm/6.16.0-1.ee0dedd5c171b73396085facdf2de820a890a017/16df0d01b955fb3d28e8edd21c8bcb6a1f01a652}
 
   '@vitest/coverage-v8@3.2.4':
     resolution: {integrity: sha512-EyF9SXU6kS5Ku/U82E259WSnvg6c8KTjppUncuNdm5QHpe17mwREHnjDzozC8x9MZ0xfBUFSaLkRv4TMA75ALQ==}
@@ -9515,8 +9515,6 @@ snapshots:
 
   '@prisma/prisma-schema-wasm@6.16.0-5.66f07015fb4a0f9195e6e97dca56186a2f4cad17': {}
 
-  '@prisma/query-compiler-wasm@6.16.0-5.66f07015fb4a0f9195e6e97dca56186a2f4cad17': {}
-
   '@prisma/query-engine-wasm@6.16.0-5.66f07015fb4a0f9195e6e97dca56186a2f4cad17': {}
 
   '@prisma/schema-engine-wasm@6.16.0-5.66f07015fb4a0f9195e6e97dca56186a2f4cad17': {}
@@ -10126,6 +10124,8 @@ snapshots:
       typescript: 5.8.2
     transitivePeerDependencies:
       - supports-color
+
+  '@vetching-corporation/prisma-query-compiler-wasm@6.16.0-1.ee0dedd5c171b73396085facdf2de820a890a017': {}
 
   '@vitest/coverage-v8@3.2.4(vitest@3.2.4(@types/debug@4.1.12)(@types/node@18.19.76)(jiti@2.4.2)(terser@5.27.0)(tsx@4.19.3)(yaml@2.7.0))':
     dependencies:
