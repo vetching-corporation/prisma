@@ -85,7 +85,13 @@ jobs:
           mv "$CLIENT_DIR/package-temp.json" "$CLIENT_DIR/package.json"
 
           # CLI package.json
-          jq --arg version "$PACKAGE_VERSION" '.name = "@vetching-corporation/prisma-cli" | .version = $version' "$CLI_DIR/package.json" > "$CLI_DIR/package-temp.json"
+          jq --arg version "$PACKAGE_VERSION" '
+            .name = "@vetching-corporation/prisma-cli"
+            | .version = $version
+            | .dependencies["@prisma/config"] = "${{ inputs.packageVersion }}"
+            | .dependencies["@prisma/engines"] = "${{ inputs.packageVersion }}"' \
+            "$CLI_DIR/package.json" > "$CLI_DIR/package-temp.json"
+
           mv "$CLI_DIR/package-temp.json" "$CLI_DIR/package.json"
 
       - name: Install dependencies
