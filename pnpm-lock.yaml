@@ -3777,6 +3777,9 @@ packages:
     peerDependencies:
       typescript: '*'
 
+  '@vetching-corporation/prisma-query-compiler-wasm@6.16.0-1.ee0dedd5c171b73396085facdf2de820a890a017':
+    resolution: {integrity: sha512-YcIfh2k3pi6leUYKDVNDWZ2E1lmj2dNhwwKoIdu4bHX6yjGQMjyXrH0GwZaVFh0o7uJxLXzX8FOMCpfqw3X8MQ==, tarball: https://npm.pkg.github.com/download/@vetching-corporation/prisma-query-compiler-wasm/6.16.0-1.ee0dedd5c171b73396085facdf2de820a890a017/16df0d01b955fb3d28e8edd21c8bcb6a1f01a652}
+
   '@vitest/coverage-v8@3.2.4':
     resolution: {integrity: sha512-EyF9SXU6kS5Ku/U82E259WSnvg6c8KTjppUncuNdm5QHpe17mwREHnjDzozC8x9MZ0xfBUFSaLkRv4TMA75ALQ==}
     peerDependencies:
@@ -10116,6 +10119,8 @@ snapshots:
       typescript: 5.8.2
     transitivePeerDependencies:
       - supports-color
+
+  '@vetching-corporation/prisma-query-compiler-wasm@6.16.0-1.ee0dedd5c171b73396085facdf2de820a890a017': {}
 
   '@vitest/coverage-v8@3.2.4(vitest@3.2.4(@types/debug@4.1.12)(@types/node@18.19.76)(jiti@2.4.2)(terser@5.27.0)(tsx@4.19.3)(yaml@2.7.0))':
     dependencies:
