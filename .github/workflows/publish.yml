@@ -78,10 +78,15 @@ jobs:
           PACKAGE_VERSION="${{ steps.package-version.outputs.PACKAGE_VERSION }}"
 
           CLIENT_DIR="packages/client"
+          CLI_DIR="packages/cli"
 
           # Client package.json
           jq --arg version "$PACKAGE_VERSION" '.name = "@vetching-corporation/prisma-client" | .version = $version' "$CLIENT_DIR/package.json" > "$CLIENT_DIR/package-temp.json"
           mv "$CLIENT_DIR/package-temp.json" "$CLIENT_DIR/package.json"
+
+          # CLI package.json
+          jq --arg version "$PACKAGE_VERSION" '.name = "@vetching-corporation/prisma-cli" | .version = $version' "$CLI_DIR/package.json" > "$CLI_DIR/package-temp.json"
+          mv "$CLI_DIR/package-temp.json" "$CLI_DIR/package.json"
 
       - name: Install dependencies
         env:
@@ -96,8 +101,15 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          cd packages/client && \
-          pnpm publish --no-git-checks
+          (
+            cd packages/client && \
+            pnpm publish --no-git-checks
+          )
+
+          (
+            cd packages/cli && \
+            pnpm publish --no-git-checks
+          )
 
       - name: Print output
         env:
