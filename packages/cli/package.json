@@ -166,8 +166,8 @@
     "prepublishOnly": "pnpm run build"
   },
   "dependencies": {
-    "@prisma/config": "workspace:*",
-    "@prisma/engines": "workspace:*"
+    "@prisma/config": "6.15.0",
+    "@prisma/engines": "6.15.0"
   },
   "peerDependencies": {
     "typescript": ">=5.1.0"
