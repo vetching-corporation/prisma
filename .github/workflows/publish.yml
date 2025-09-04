@@ -81,11 +81,11 @@ jobs:
           CLI_DIR="packages/cli"
 
           # Client package.json
-          jq --arg version "$PACKAGE_VERSION" '.name = "@vetching-corporation/prisma-client" | .version = $version' "$CLIENT_DIR/package.json" > "$CLIENT_DIR/package-temp.json"
+          jq --arg version "$PACKAGE_VERSION" '.version = $version' "$CLIENT_DIR/package.json" > "$CLIENT_DIR/package-temp.json"
           mv "$CLIENT_DIR/package-temp.json" "$CLIENT_DIR/package.json"
 
           # CLI package.json
-          jq --arg version "$PACKAGE_VERSION" '.name = "@vetching-corporation/prisma-cli" | .version = $version' "$CLI_DIR/package.json" > "$CLI_DIR/package-temp.json"
+          jq --arg version "$PACKAGE_VERSION" '.version = $version' "$CLI_DIR/package.json" > "$CLI_DIR/package-temp.json"
           mv "$CLI_DIR/package-temp.json" "$CLI_DIR/package.json"
 
       - name: Install dependencies
@@ -103,12 +103,14 @@ jobs:
         run: |
           (
             cd packages/client && \
+            jq '.name = "@vetching-corporation/prisma-client"' "package.json" > "package-temp.json" && \
+            mv "package-temp.json" "package.json" && \
             pnpm publish --no-git-checks
           )
 
           (
             cd packages/cli && \
-            jq '.dependencies["@prisma/config"] = "${{ inputs.packageVersion }}" | .dependencies["@prisma/engines"] = "${{ inputs.packageVersion }}"' "package.json" > "package-temp.json" && \
+            jq '.name = "@vetching-corporation/prisma-cli" | .dependencies["@prisma/config"] = "${{ inputs.packageVersion }}" | .dependencies["@prisma/engines"] = "${{ inputs.packageVersion }}"' "package.json" > "package-temp.json" && \
             mv "package-temp.json" "package.json" && \
             pnpm publish --no-git-checks
           )
