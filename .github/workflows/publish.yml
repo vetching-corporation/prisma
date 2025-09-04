@@ -107,12 +107,9 @@ jobs:
           )
 
           (
-            jq --arg version "$PACKAGE_VERSION" '
-              .dependencies["@prisma/config"] = "${{ inputs.packageVersion }}" |
-              .dependencies["@prisma/engines"] = "${{ inputs.packageVersion }}"' \
-              "$CLI_DIR/package.json" > "$CLI_DIR/package-temp.json" && \
-            mv "$CLI_DIR/package-temp.json" "$CLI_DIR/package.json" && \
             cd packages/cli && \
+            jq '.dependencies["@prisma/config"] = "${{ inputs.packageVersion }}" | .dependencies["@prisma/engines"] = "${{ inputs.packageVersion }}"' "package.json" > "package-temp.json" && \
+            mv "package-temp.json" "package.json" && \
             pnpm publish --no-git-checks
           )
 
