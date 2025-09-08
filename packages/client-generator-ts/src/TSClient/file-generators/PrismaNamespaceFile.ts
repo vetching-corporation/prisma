@@ -229,12 +229,30 @@ function buildClientOptions(context: GenerateContext, options: TSClientOptions) 
   )
 
   if (['library', 'client', 'wasm-compiler-edge', 'wasm-engine-edge'].includes(options.runtimeName)) {
+    const adapterOptions = ts
+      .objectType()
+      .add(ts.property('primary', ts.namedType('runtime.SqlDriverAdapterFactory')))
+      .add(
+        ts
+          .property('replica', ts.unionType([ts.namedType('runtime.SqlDriverAdapterFactory'), ts.namedType('null')]))
+          .optional(),
+      )
+
     clientOptions.add(
       ts
-        .property('adapter', ts.unionType([ts.namedType('runtime.SqlDriverAdapterFactory'), ts.namedType('null')]))
+        .property('adapter', adapterOptions)
         .optional()
         .setDocComment(
-          ts.docComment('Instance of a Driver Adapter, e.g., like one provided by `@prisma/adapter-planetscale`'),
+          ts.docComment(`Instance of a Driver Adapter, e.g., like one provided by \`@prisma/adapter-pg\`
+            @example
+            \`\`\`
+            const prisma = new PrismaClient({
+              adapter: {
+                primary: new PrismaPg(),
+                replica: new PrismaPg(), // (optional) if not provided, the read operations will only use the primary adapter
+              },
+            })
+            \`\`\``),
         ),
     )
   }
