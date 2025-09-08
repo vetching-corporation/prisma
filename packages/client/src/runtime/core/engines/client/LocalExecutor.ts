@@ -11,8 +11,22 @@ import type { ConnectionInfo, SqlDriverAdapter, SqlDriverAdapterFactory } from '
 import type { InteractiveTransactionInfo } from '../common/types/Transaction'
 import type { ExecutePlanParams, Executor, ProviderAndConnectionInfo } from './Executor'
 
+const readOperations = [
+  'findFirst',
+  'findFirstOrThrow',
+  'findMany',
+  'findUnique',
+  'findUniqueOrThrow',
+  'groupBy',
+  'aggregate',
+  'count',
+  'findRaw',
+  'aggregateRaw',
+]
+
 export interface LocalExecutorOptions {
   driverAdapterFactory: SqlDriverAdapterFactory
+  driverAdapterReplicaFactory?: SqlDriverAdapterFactory
   transactionOptions: TransactionOptions
   tracingHelper: TracingHelper
   onQuery?: (event: QueryEvent) => void
@@ -22,22 +36,31 @@ export interface LocalExecutorOptions {
 export class LocalExecutor implements Executor {
   readonly #options: LocalExecutorOptions
   readonly #driverAdapter: SqlDriverAdapter
+  readonly #driverAdapterReplica?: SqlDriverAdapter
   readonly #transactionManager: TransactionManager
   readonly #connectionInfo?: ConnectionInfo
 
-  constructor(options: LocalExecutorOptions, driverAdapter: SqlDriverAdapter, transactionManager: TransactionManager) {
+  constructor(
+    options: LocalExecutorOptions,
+    driverAdapter: SqlDriverAdapter,
+    driverAdapterReplica: SqlDriverAdapter | undefined,
+    transactionManager: TransactionManager,
+  ) {
     this.#options = options
     this.#driverAdapter = driverAdapter
+    this.#driverAdapterReplica = driverAdapterReplica
     this.#transactionManager = transactionManager
     this.#connectionInfo = driverAdapter.getConnectionInfo?.()
   }
 
   static async connect(options: LocalExecutorOptions): Promise<LocalExecutor> {
     let driverAdapter: SqlDriverAdapter | undefined = undefined
+    let driverAdapterReplica: SqlDriverAdapter | undefined = undefined
     let transactionManager: TransactionManager | undefined = undefined
 
     try {
       driverAdapter = await options.driverAdapterFactory.connect()
+      driverAdapterReplica = await options.driverAdapterReplicaFactory?.connect()
       transactionManager = new TransactionManager({
         driverAdapter,
         transactionOptions: options.transactionOptions,
@@ -47,10 +70,11 @@ export class LocalExecutor implements Executor {
       })
     } catch (error) {
       await driverAdapter?.dispose()
+      await driverAdapterReplica?.dispose()
       throw error
     }
 
-    return new LocalExecutor(options, driverAdapter, transactionManager)
+    return new LocalExecutor(options, driverAdapter, driverAdapterReplica, transactionManager)
   }
 
   getConnectionInfo(): Promise<ProviderAndConnectionInfo> {
@@ -58,10 +82,12 @@ export class LocalExecutor implements Executor {
     return Promise.resolve({ provider: this.#driverAdapter.provider, connectionInfo })
   }
 
-  async execute({ plan, placeholderValues, transaction, batchIndex }: ExecutePlanParams): Promise<unknown> {
+  async execute({ plan, placeholderValues, transaction, batchIndex, operation }: ExecutePlanParams): Promise<unknown> {
     const queryable = transaction
       ? await this.#transactionManager.getTransaction(transaction, batchIndex !== undefined ? 'batch query' : 'query')
-      : this.#driverAdapter
+      : this.#driverAdapterReplica !== undefined && readOperations.includes(operation)
+        ? this.#driverAdapterReplica
+        : this.#driverAdapter
 
     const interpreter = QueryInterpreter.forSql({
       transactionManager: transaction ? { enabled: false } : { enabled: true, manager: this.#transactionManager },
@@ -92,6 +118,7 @@ export class LocalExecutor implements Executor {
       await this.#transactionManager.cancelAllTransactions()
     } finally {
       await this.#driverAdapter.dispose()
+      await this.#driverAdapterReplica?.dispose()
     }
   }
 }
