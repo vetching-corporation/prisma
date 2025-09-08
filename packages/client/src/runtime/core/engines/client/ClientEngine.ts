@@ -82,6 +82,7 @@ type ExecutorKind =
   | {
       remote: false
       driverAdapterFactory: SqlDriverAdapterFactory
+      driverAdapterReplicaFactory?: SqlDriverAdapterFactory
     }
   | { remote: true }
 
@@ -107,7 +108,11 @@ export class ClientEngine implements Engine {
     if (remote) {
       this.#executorKind = { remote: true }
     } else if (config.adapter) {
-      this.#executorKind = { remote: false, driverAdapterFactory: config.adapter }
+      this.#executorKind = {
+        remote: false,
+        driverAdapterFactory: config.adapter,
+        driverAdapterReplicaFactory: config.adapterReplica,
+      }
       debug('Using driver adapter: %O', config.adapter)
     } else {
       throw new PrismaClientInitializationError(
@@ -219,6 +224,7 @@ export class ClientEngine implements Engine {
     } else {
       return await LocalExecutor.connect({
         driverAdapterFactory: this.#executorKind.driverAdapterFactory,
+        driverAdapterReplicaFactory: this.#executorKind.driverAdapterReplicaFactory,
         tracingHelper: this.tracingHelper,
         transactionOptions: {
           ...this.config.transactionOptions,

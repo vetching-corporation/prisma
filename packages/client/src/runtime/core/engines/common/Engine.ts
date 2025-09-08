@@ -152,6 +152,13 @@ export interface EngineConfig {
   adapter?: SqlDriverAdapterFactory
 
   /**
+   * Instance of a Replication Driver Adapter, e.g., like one provided by `@prisma/adapter-planetscale`.
+   * If set, this is only used in the LocalExecutor, and all read queries would be performed through it,
+   * @remarks only used by LocalExecutor.ts
+   */
+  adapterReplica?: SqlDriverAdapterFactory
+
+  /**
    * The contents of the schema encoded into a string
    */
   inlineSchema: string
