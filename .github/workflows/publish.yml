@@ -93,6 +93,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           pnpm install --frozen-lockfile
+          pnpm build
 
       - name: Publish all packages to npm
         id: publish
@@ -104,7 +105,8 @@ jobs:
             jq '.name = "@vetching-corporation/prisma-client"' "package.json" > "package-temp.json" && \
             mv "package-temp.json" "package.json" && \
             pnpm publish --no-git-checks
-          ) && \
+          )
+
           (
             cd packages/cli && \
             jq '.name = "@vetching-corporation/prisma-cli" | .dependencies["@prisma/config"] = "${{ inputs.packageVersion }}" | .dependencies["@prisma/engines"] = "${{ inputs.packageVersion }}"' "package.json" > "package-temp.json" && \
