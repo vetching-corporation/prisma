@@ -70,6 +70,15 @@ jobs:
             echo "PACKAGE_VERSION=${BASE_VERSION}-${SEQUENCE}.${COMMIT_HASH}" >> $GITHUB_OUTPUT
           fi
 
+      - name: Turbo Cache
+        uses: turbo/cache@v4
+        with:
+          key: ${{ runner.os }}-turbo-${{ hashFiles('turbo.json') }}-${{ hashFiles('pnpm-lock.yaml') }}
+          paths: |
+            .turbo
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
       - name: Install jq
         uses: dcarbone/install-jq-action@v3
 
