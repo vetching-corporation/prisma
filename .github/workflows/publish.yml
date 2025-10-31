@@ -71,7 +71,7 @@ jobs:
           fi
 
       - name: Turbo Cache
-        uses: turbo/cache@v4
+        uses: actions/cache@v4
         with:
           key: ${{ runner.os }}-turbo-${{ hashFiles('turbo.json') }}-${{ hashFiles('pnpm-lock.yaml') }}
           paths: |
