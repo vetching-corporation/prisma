@@ -7,6 +7,7 @@ export type JsonQuery = {
   action: JsonQueryAction
   query: JsonFieldSelection
   schemaRequest?: Record<string, string>
+  usePrimary?: boolean
 }
 
 export type JsonBatchQuery = {

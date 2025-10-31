@@ -483,6 +483,7 @@ export class ClientEngine implements Engine {
         transaction: interactiveTransaction,
         batchIndex: undefined,
         customFetch: customDataProxyFetch?.(globalThis.fetch),
+        usePrimary: query.usePrimary,
       })
 
       debug(`query plan executed`)
@@ -552,6 +553,7 @@ export class ClientEngine implements Engine {
                 batchIndex,
                 transaction: txInfo,
                 customFetch: customDataProxyFetch?.(globalThis.fetch) as typeof globalThis.fetch | undefined,
+                usePrimary: queries[0].usePrimary,
               })
               results.push({ data: { [queries[batchIndex].action]: rows } })
             } catch (err) {
@@ -583,6 +585,7 @@ export class ClientEngine implements Engine {
             batchIndex: undefined,
             transaction: txInfo,
             customFetch: customDataProxyFetch?.(globalThis.fetch) as typeof globalThis.fetch | undefined,
+            usePrimary: queries[0].usePrimary,
           })
 
           const results = convertCompactedRows(rows as {}[], batchResponse)

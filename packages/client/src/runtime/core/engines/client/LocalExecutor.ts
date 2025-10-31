@@ -12,13 +12,13 @@ import type { InteractiveTransactionInfo } from '../common/types/Transaction'
 import type { ExecutePlanParams, Executor, ProviderAndConnectionInfo } from './Executor'
 
 const readOperations = [
+  'findUnique',
+  'findUniqueOrThrow',
   'findFirst',
   'findFirstOrThrow',
   'findMany',
-  'findUnique',
-  'findUniqueOrThrow',
-  'groupBy',
   'aggregate',
+  'groupBy',
   'count',
   'findRaw',
   'aggregateRaw',
@@ -82,10 +82,17 @@ export class LocalExecutor implements Executor {
     return Promise.resolve({ provider: this.#driverAdapter.provider, connectionInfo })
   }
 
-  async execute({ plan, placeholderValues, transaction, batchIndex, operation }: ExecutePlanParams): Promise<unknown> {
+  async execute({
+    plan,
+    placeholderValues,
+    transaction,
+    batchIndex,
+    operation,
+    usePrimary,
+  }: ExecutePlanParams): Promise<unknown> {
     const queryable = transaction
       ? await this.#transactionManager.getTransaction(transaction, batchIndex !== undefined ? 'batch query' : 'query')
-      : this.#driverAdapterReplica !== undefined && readOperations.includes(operation)
+      : usePrimary !== true && this.#driverAdapterReplica !== undefined && readOperations.includes(operation)
         ? this.#driverAdapterReplica
         : this.#driverAdapter
 

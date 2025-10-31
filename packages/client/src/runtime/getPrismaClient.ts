@@ -93,6 +93,7 @@ export type Datasources = { [name in string]: Datasource }
 
 export type RequestContextPayload = {
   dynamicSchemas?: DynamicSchema[]
+  usePrimary?: boolean
 }
 export type RequestContext = AsyncLocalStorage<RequestContextPayload>
 
@@ -474,31 +475,6 @@ export function getPrismaClient(config: GetPrismaClientConfig) {
      */
     $context(): RequestContext {
       return this._requestContext
-    }
-
-    /**
-     * Set the global schema for the client.
-     * @param schema - The schema to set (eg. `hospital2`)
-     * @param cb - Express middleware function (eg. `next()`)
-     *
-     * @example
-     * // In express middleware, it could be used like this:
-     * app.use((_req, _res, next) => {
-     *   prisma.$setGlobalSchema('hospital2', next)
-     * })
-     */
-    $setGlobalSchema<R>(schema: string, cb: () => R): R {
-      return this._requestContext.run(
-        {
-          dynamicSchemas: [
-            {
-              from: 'hospital_template',
-              to: schema,
-            },
-          ],
-        },
-        cb,
-      )
     }
 
     $on<E extends ExtendedEventType>(eventType: E, callback: EventCallback<E>): PrismaClient {
@@ -948,6 +924,7 @@ Or read our docs at https://www.prisma.io/docs/concepts/components/prisma-client
             previewFeatures: this._previewFeatures,
             globalOmit: this._globalOmit,
             dynamicSchemas: requestCtx.dynamicSchemas,
+            usePrimary: requestCtx.usePrimary,
           }),
         )
 

@@ -12,6 +12,7 @@ export interface ExecutePlanParams {
   transaction: InteractiveTransactionInfo | undefined
   batchIndex: number | undefined
   customFetch?: AccelerateExtensionFetch
+  usePrimary?: boolean
 }
 
 export interface ProviderAndConnectionInfo {

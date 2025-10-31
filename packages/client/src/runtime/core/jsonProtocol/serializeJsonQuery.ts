@@ -77,6 +77,7 @@ export type SerializeParams = {
   previewFeatures: string[]
   globalOmit?: GlobalOmitOptions
   dynamicSchemas?: DynamicSchema[]
+  usePrimary?: boolean
 }
 
 const STRICT_UNDEFINED_ERROR_MESSAGE = 'explicitly `undefined` values are not allowed'
@@ -94,6 +95,7 @@ export function serializeJsonQuery({
   previewFeatures,
   globalOmit,
   dynamicSchemas,
+  usePrimary,
 }: SerializeParams): JsonQuery {
   const context = new SerializeContext({
     runtimeDataModel,
@@ -116,6 +118,7 @@ export function serializeJsonQuery({
     action: jsActionToProtocolAction[action],
     query: serializeFieldSelection(extractedArgs, context),
     schemaRequest: serializeSchemaRequest(dynamicSchemas, schema),
+    usePrimary: usePrimary ?? false,
   }
 }
 
