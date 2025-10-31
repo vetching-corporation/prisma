@@ -73,11 +73,8 @@ jobs:
       - name: Turbo Cache
         uses: actions/cache@v4
         with:
+          path: .turbo
           key: ${{ runner.os }}-turbo-${{ hashFiles('turbo.json') }}-${{ hashFiles('pnpm-lock.yaml') }}
-          paths: |
-            .turbo
-          restore-keys: |
-            ${{ runner.os }}-turbo-
 
       - name: Install jq
         uses: dcarbone/install-jq-action@v3
