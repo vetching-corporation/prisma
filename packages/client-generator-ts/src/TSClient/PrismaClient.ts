@@ -323,7 +323,7 @@ export interface PrismaClient<
   $disconnect(): runtime.Types.Utils.JsPromise<void>;
 
   /**
-   * Returns the request context (AsyncLocalStorage)
+   * Returns the request context
    * @returns RequestContext
    */
   $context(): RequestContext;

@@ -100,7 +100,7 @@ function modelActionsLayer(client: Client, dmmfModelName: string): CompositeProx
               callsite: callSite,
 
               // dynamic schemas
-              requestCtx: client.$context().getStore() ?? {},
+              requestCtx: client._requestContext.get(client._alsContext.getStore()?.id ?? ''),
             }
 
             return client._request({ ...params, ...paramOverrides })

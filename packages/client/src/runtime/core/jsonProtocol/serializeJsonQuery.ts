@@ -1,12 +1,11 @@
 import { RuntimeDataModel, RuntimeModel, uncapitalize } from '@prisma/client-common'
 import { assertNever } from '@prisma/internals'
 
-import { ErrorFormat } from '../../getPrismaClient'
+import { ErrorFormat, RequestContextPayload } from '../../getPrismaClient'
 import { CallSite } from '../../utils/CallSite'
 import { isDate, isValidDate } from '../../utils/date'
 import { isDecimalJsLike } from '../../utils/decimalJsLike'
 import {
-  DynamicSchema,
   JsonArgumentValue,
   JsonFieldSelection,
   JsonQuery,
@@ -32,6 +31,7 @@ import {
 } from '../types/exported/JsApi'
 import { ObjectEnumValue, objectEnumValues } from '../types/exported/ObjectEnums'
 import { ValidationError } from '../types/ValidationError'
+import { isWrite } from './isWrite'
 
 const jsActionToProtocolAction: Record<Action, JsonQueryAction> = {
   findUnique: 'findUnique',
@@ -76,8 +76,7 @@ export type SerializeParams = {
   errorFormat: ErrorFormat
   previewFeatures: string[]
   globalOmit?: GlobalOmitOptions
-  dynamicSchemas?: DynamicSchema[]
-  usePrimary?: boolean
+  requestCtx?: RequestContextPayload
 }
 
 const STRICT_UNDEFINED_ERROR_MESSAGE = 'explicitly `undefined` values are not allowed'
@@ -94,8 +93,7 @@ export function serializeJsonQuery({
   clientVersion,
   previewFeatures,
   globalOmit,
-  dynamicSchemas,
-  usePrimary,
+  requestCtx,
 }: SerializeParams): JsonQuery {
   const context = new SerializeContext({
     runtimeDataModel,
@@ -113,12 +111,14 @@ export function serializeJsonQuery({
     globalOmit,
   })
   const { schema, ...extractedArgs } = args ?? {}
+  const protocolAction = jsActionToProtocolAction[action]
+
   return {
     modelName,
-    action: jsActionToProtocolAction[action],
+    action: protocolAction,
     query: serializeFieldSelection(extractedArgs, context),
-    schemaRequest: serializeSchemaRequest(dynamicSchemas, schema),
-    usePrimary: usePrimary ?? false,
+    schemaRequest: serializeSchemaRequest(requestCtx, schema),
+    usePrimary: determineUsePrimary(requestCtx, protocolAction),
   }
 }
 
@@ -163,21 +163,33 @@ function serializeSelectionSet(
 }
 
 function serializeSchemaRequest(
-  dynamicSchemas: DynamicSchema[] = [],
-  forceSchema?: string,
+  requestCtx: RequestContextPayload | undefined,
+  forceSchema: string | undefined,
 ): Record<string, string> | undefined {
-  dynamicSchemas = dynamicSchemas?.map((schema) => ({ ...schema })) ?? []
-  const serializedSchemas = Object.fromEntries(dynamicSchemas.map((schema) => [schema.from, schema.to]))
+  const serializedSchema: Record<string, string> = {}
 
-  if (forceSchema && /^hospital([1-9]{1})([0-9]+)?$/.test(forceSchema)) {
-    serializedSchemas['hospital_template'] = forceSchema
-  }
+  if (forceSchema) serializedSchema['hospital_template'] = forceSchema
+  else if (requestCtx?.schema) serializedSchema['hospital_template'] = requestCtx.schema
 
-  if (Object.keys(serializedSchemas).length === 0) {
+  if (Object.keys(serializedSchema).length === 0) {
     return undefined
   }
 
-  return serializedSchemas
+  return serializedSchema
+}
+
+function determineUsePrimary(requestCtx: RequestContextPayload | undefined, action: JsonQueryAction) {
+  if (requestCtx?.usePrimary === true) {
+    return true
+  }
+
+  const usePrimary = requestCtx?.usePrimary ?? isWrite(action)
+
+  if (requestCtx !== undefined && usePrimary === true) {
+    requestCtx.usePrimary = usePrimary
+  }
+
+  return usePrimary
 }
 
 function createImplicitSelection(

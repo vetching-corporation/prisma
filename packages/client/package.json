@@ -327,5 +327,8 @@
       "optional": true
     }
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "dependencies": {
+    "lru-cache": "11.2.2"
+  }
 }

@@ -11,19 +11,6 @@ import type { ConnectionInfo, SqlDriverAdapter, SqlDriverAdapterFactory } from '
 import type { InteractiveTransactionInfo } from '../common/types/Transaction'
 import type { ExecutePlanParams, Executor, ProviderAndConnectionInfo } from './Executor'
 
-const readOperations = [
-  'findUnique',
-  'findUniqueOrThrow',
-  'findFirst',
-  'findFirstOrThrow',
-  'findMany',
-  'aggregate',
-  'groupBy',
-  'count',
-  'findRaw',
-  'aggregateRaw',
-]
-
 export interface LocalExecutorOptions {
   driverAdapterFactory: SqlDriverAdapterFactory
   driverAdapterReplicaFactory?: SqlDriverAdapterFactory
@@ -82,17 +69,10 @@ export class LocalExecutor implements Executor {
     return Promise.resolve({ provider: this.#driverAdapter.provider, connectionInfo })
   }
 
-  async execute({
-    plan,
-    placeholderValues,
-    transaction,
-    batchIndex,
-    operation,
-    usePrimary,
-  }: ExecutePlanParams): Promise<unknown> {
+  async execute({ plan, placeholderValues, transaction, batchIndex, usePrimary }: ExecutePlanParams): Promise<unknown> {
     const queryable = transaction
       ? await this.#transactionManager.getTransaction(transaction, batchIndex !== undefined ? 'batch query' : 'query')
-      : usePrimary !== true && this.#driverAdapterReplica !== undefined && readOperations.includes(operation)
+      : this.#driverAdapterReplica !== undefined && usePrimary !== true
         ? this.#driverAdapterReplica
         : this.#driverAdapter
 
