@@ -183,7 +183,7 @@ function determineUsePrimary(requestCtx: RequestContextPayload | undefined, acti
     return true
   }
 
-  const usePrimary = requestCtx?.usePrimary ?? isWrite(action)
+  const usePrimary = isWrite(action)
 
   if (requestCtx !== undefined && usePrimary === true) {
     requestCtx.usePrimary = usePrimary
