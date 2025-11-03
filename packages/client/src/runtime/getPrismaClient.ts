@@ -7,6 +7,7 @@ import { ExtendedSpanOptions, logger, TracingHelper, tryLoadEnvs } from '@prisma
 import { AsyncLocalStorage, AsyncResource } from 'async_hooks'
 import { EventEmitter } from 'events'
 import fs from 'fs'
+import { LRUCache } from 'lru-cache'
 import path from 'path'
 import { RawValue, Sql } from 'sql-template-tag'
 
@@ -17,7 +18,7 @@ import {
   PrismaClientValidationError,
 } from '.'
 import { addProperty, createCompositeProxy, removeProperties } from './core/compositeProxy'
-import { BatchTransactionOptions, DynamicSchema, Engine, EngineConfig, Options } from './core/engines'
+import { BatchTransactionOptions, Engine, EngineConfig, Options } from './core/engines'
 import { AccelerateEngineConfig } from './core/engines/accelerate/AccelerateEngine'
 import { AccelerateExtensionFetchDecorator } from './core/engines/common/Engine'
 import { EngineEvent, LogEmitter } from './core/engines/common/types/Events'
@@ -91,11 +92,14 @@ export type ErrorFormat = 'pretty' | 'colorless' | 'minimal'
 export type Datasource = { url?: string }
 export type Datasources = { [name in string]: Datasource }
 
+export type RequestContext = {
+  init: <R>(cb: () => R, opts?: { schema?: string; usePrimary?: boolean }) => R
+}
 export type RequestContextPayload = {
-  dynamicSchemas?: DynamicSchema[]
+  id: string
+  schema?: string
   usePrimary?: boolean
 }
-export type RequestContext = AsyncLocalStorage<RequestContextPayload>
 
 export type PrismaClientOptions = {
   /**
@@ -191,7 +195,7 @@ export type InternalRequestParams = {
   /** Used for Accelerate client extension via Data Proxy */
   customDataProxyFetch?: AccelerateExtensionFetchDecorator
   /** Used to get the request context */
-  requestCtx: RequestContextPayload
+  requestCtx?: RequestContextPayload
 } & Omit<QueryMiddlewareParams, 'runInTransaction'>
 
 export type MiddlewareArgsMapper<RequestArgs, MiddlewareArgs> = {
@@ -270,7 +274,14 @@ export function getPrismaClient(config: GetPrismaClientConfig) {
      */
     _appliedParent: PrismaClient
     _createPrismaPromise = createPrismaPromiseFactory()
-    _requestContext: RequestContext = new AsyncLocalStorage<RequestContextPayload>()
+    _requestContext = new LRUCache<string, RequestContextPayload>({
+      max: 50_000,
+      ttl: 10_000,
+      ttlResolution: 100,
+      updateAgeOnHas: true,
+      updateAgeOnGet: true,
+    })
+    _alsContext = new AsyncLocalStorage<{ id: string }>()
 
     constructor(optionsArg?: PrismaClientOptions) {
       config = optionsArg?.__internal?.configOverride?.(config) ?? config
@@ -474,7 +485,19 @@ export function getPrismaClient(config: GetPrismaClientConfig) {
      * @returns RequestContext
      */
     $context(): RequestContext {
-      return this._requestContext
+      return {
+        init: (cb, opts) => {
+          const id = crypto.randomUUID()
+
+          this._requestContext.set(id, {
+            id,
+            schema: opts?.schema,
+            usePrimary: opts?.usePrimary,
+          })
+
+          return this._alsContext.run({ id }, cb)
+        },
+      }
     }
 
     $on<E extends ExtendedEventType>(eventType: E, callback: EventCallback<E>): PrismaClient {
@@ -533,7 +556,7 @@ export function getPrismaClient(config: GetPrismaClientConfig) {
         callsite: getCallSite(this._errorFormat),
         dataPath: [],
         middlewareArgsMapper,
-        requestCtx: this._requestContext.getStore() ?? {},
+        requestCtx: this._getContextPayload(),
       })
     }
 
@@ -609,7 +632,7 @@ Or read our docs at https://www.prisma.io/docs/concepts/components/prisma-client
           argsMapper: rawCommandArgsMapper,
           callsite: getCallSite(this._errorFormat),
           transaction: transaction,
-          requestCtx: this._requestContext.getStore() ?? {},
+          requestCtx: this._getContextPayload(),
         })
       })
     }
@@ -634,7 +657,7 @@ Or read our docs at https://www.prisma.io/docs/concepts/components/prisma-client
         callsite: getCallSite(this._errorFormat),
         dataPath: [],
         middlewareArgsMapper,
-        requestCtx: this._requestContext.getStore() ?? {},
+        requestCtx: this._getContextPayload(),
       })
     }
 
@@ -788,6 +811,8 @@ Or read our docs at https://www.prisma.io/docs/concepts/components/prisma-client
     $transaction(input: any, options?: any) {
       let callback: () => Promise<any>
 
+      this._setPrimary()
+
       // iTx - Interactive transaction
       if (typeof input === 'function') {
         if (this._engineConfig.adapter?.adapterName === '@prisma/adapter-d1') {
@@ -923,8 +948,7 @@ Or read our docs at https://www.prisma.io/docs/concepts/components/prisma-client
             clientVersion: this._clientVersion,
             previewFeatures: this._previewFeatures,
             globalOmit: this._globalOmit,
-            dynamicSchemas: requestCtx.dynamicSchemas,
-            usePrimary: requestCtx.usePrimary,
+            requestCtx,
           }),
         )
 
@@ -980,6 +1004,24 @@ Or read our docs at https://www.prisma.io/docs/concepts/components/prisma-client
     }
 
     $extends = $extends
+
+    _getContextPayload(): RequestContextPayload | undefined {
+      const store = this._alsContext.getStore()
+      if (!store) {
+        return undefined
+      }
+      return this._requestContext.get(store.id)
+    }
+
+    _setPrimary() {
+      const requestCtx = this._getContextPayload()
+      if (!requestCtx) {
+        return
+      }
+
+      requestCtx.usePrimary = true
+      this._requestContext.set(requestCtx.id, requestCtx)
+    }
   }
 
   return PrismaClient
