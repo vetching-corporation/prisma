@@ -23,7 +23,6 @@ const readOperations: Set<JsonQueryAction> = new Set([
   'findUniqueOrThrow',
   'groupBy',
   'aggregate',
-  'queryRaw',
   'findRaw',
   'aggregateRaw',
 ])
