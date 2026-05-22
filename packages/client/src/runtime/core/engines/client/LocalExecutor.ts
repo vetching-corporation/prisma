@@ -9,8 +9,9 @@ import {
 import type { ConnectionInfo, SqlDriverAdapter, SqlDriverAdapterFactory } from '@prisma/driver-adapter-utils'
 import type { JsonQueryAction } from '@prisma/json-protocol'
 import type { SqlCommenterPlugin } from '@prisma/sqlcommenter'
-import { AsyncLocalStorage } from 'async_hooks'
+import type { AsyncLocalStorage } from 'async_hooks'
 
+import type { RequestContextStore } from '../common/Engine'
 import type { InteractiveTransactionInfo } from '../common/types/Transaction'
 import type { ExecutePlanParams, Executor, ProviderAndConnectionInfo } from './Executor'
 
@@ -22,6 +23,7 @@ const readOperations: Set<JsonQueryAction> = new Set([
   'findUniqueOrThrow',
   'groupBy',
   'aggregate',
+  'queryRaw',
   'findRaw',
   'aggregateRaw',
 ])
@@ -29,7 +31,8 @@ const readOperations: Set<JsonQueryAction> = new Set([
 export interface LocalExecutorOptions {
   driverAdapterFactory: SqlDriverAdapterFactory
   driverAdapterReplicaFactory?: SqlDriverAdapterFactory
-  requestContext?: AsyncLocalStorage<any>
+  requestContext?: AsyncLocalStorage<RequestContextStore>
+  autoPinOnWrite?: boolean
   transactionOptions: TransactionOptions
   tracingHelper: TracingHelper
   onQuery?: (event: QueryEvent) => void
@@ -71,7 +74,11 @@ export class LocalExecutor implements Executor {
 
     try {
       driverAdapter = await options.driverAdapterFactory.connect()
-      driverAdapterReplica = await options.driverAdapterReplicaFactory?.connect()
+      try {
+        driverAdapterReplica = await options.driverAdapterReplicaFactory?.connect()
+      } catch {
+        console.warn('[prisma] replica adapter connection failed, falling back to primary-only')
+      }
       transactionManager = new TransactionManager({
         driverAdapter,
         transactionOptions: options.transactionOptions,
@@ -103,14 +110,16 @@ export class LocalExecutor implements Executor {
   }: ExecutePlanParams): Promise<unknown> {
     const ctx = this.#options.requestContext?.getStore()
     const forceWriter = ctx?.forceWriter ?? false
+    const usePrimary = ctx?.usePrimary ?? false
+    const isRead = readOperations.has(operation as JsonQueryAction)
 
     const queryable = transaction
       ? await this.#transactionManager.getTransaction(transaction, batchIndex !== undefined ? 'batch query' : 'query')
-      : !forceWriter && this.#driverAdapterReplica && readOperations.has(operation as JsonQueryAction)
+      : !forceWriter && !usePrimary && this.#driverAdapterReplica && isRead
         ? this.#driverAdapterReplica
         : this.#driverAdapter
 
-    return await this.#interpreter.run(plan, {
+    const result = await this.#interpreter.run(plan, {
       queryable,
       transactionManager: transaction ? { enabled: false } : { enabled: true, manager: this.#transactionManager },
       scope,
@@ -119,6 +128,12 @@ export class LocalExecutor implements Executor {
         queryInfo,
       },
     })
+
+    if (this.#options.autoPinOnWrite && this.#driverAdapterReplica && ctx && !isRead) {
+      ctx.usePrimary = true
+    }
+
+    return result
   }
 
   async startTransaction(options: TransactionOptions): Promise<InteractiveTransactionInfo> {
@@ -137,8 +152,7 @@ export class LocalExecutor implements Executor {
     try {
       await this.#transactionManager.cancelAllTransactions()
     } finally {
-      await this.#driverAdapter.dispose()
-      await this.#driverAdapterReplica?.dispose()
+      await Promise.allSettled([this.#driverAdapter.dispose(), this.#driverAdapterReplica?.dispose()])
     }
   }
 

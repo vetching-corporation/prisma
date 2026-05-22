@@ -280,6 +280,26 @@ function buildClientOptions(context: GenerateContext) {
       `),
   )
 
+  const replicationOptions = ts
+    .objectType()
+    .add(
+      ts
+        .property('autoPinOnWrite', ts.booleanType)
+        .optional()
+        .setDocComment(
+          ts.docComment(
+            'When true, automatically pin subsequent reads to the primary adapter after a write in the same request scope. @default true',
+          ),
+        ),
+    )
+
+  otherOptions.add(
+    ts
+      .property('replication', replicationOptions)
+      .optional()
+      .setDocComment(ts.docComment`Read replication options.`),
+  )
+
   if (context.isSqlProvider()) {
     otherOptions.add(
       ts.property('comments', ts.array(ts.namedType('runtime.SqlCommenterPlugin'))).optional()

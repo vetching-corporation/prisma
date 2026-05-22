@@ -14,6 +14,7 @@ const knownProperties = [
   'omit',
   'comments',
   'queryPlanCacheMaxSize',
+  'replication',
   '__internal',
 ]
 const errorFormats: ErrorFormat[] = ['pretty', 'colorless', 'minimal']
@@ -196,6 +197,7 @@ const validators: {
       )
     }
   },
+  replication: () => {},
   comments: (options) => {
     if (options === undefined) {
       return

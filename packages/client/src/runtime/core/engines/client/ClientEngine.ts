@@ -249,6 +249,7 @@ export class ClientEngine implements Engine {
         driverAdapterFactory: this.#executorKind.driverAdapterFactory,
         driverAdapterReplicaFactory: this.#executorKind.driverAdapterReplicaFactory,
         requestContext: this.config.requestContext,
+        autoPinOnWrite: this.config.autoPinOnWrite,
         tracingHelper: this.tracingHelper,
         transactionOptions: {
           ...this.config.transactionOptions,
@@ -505,7 +506,7 @@ export class ClientEngine implements Engine {
         plan = cached
       } else {
         debug('query plan cache miss')
-        plan = this.#compileQuery(parameterizedQuery, cacheKey, queryCompiler, schemaRequestStr)
+        plan = this.#compileQuery(parameterizedQuery, parameterizedStr, queryCompiler, schemaRequestStr)
         if (isCacheable) {
           this.#queryPlanCache?.setSingle(cacheKey, plan)
         }
@@ -579,7 +580,12 @@ export class ClientEngine implements Engine {
       } else {
         debug('batch query plan cache miss')
         try {
-          batchResponse = this.#compileBatch(parameterizedBatch.batch, cacheKeyStr, queryCompiler, schemaRequestStr)
+          batchResponse = this.#compileBatch(
+            parameterizedBatch.batch,
+            parameterizedStr,
+            queryCompiler,
+            schemaRequestStr,
+          )
           this.#queryPlanCache?.setBatch(cacheKeyStr, batchResponse)
         } catch (error) {
           throw this.#transformCompileError(error)
@@ -697,7 +703,7 @@ export class ClientEngine implements Engine {
       return this.#withLocalPanicHandler(() =>
         this.#withCompileSpan({
           queries: [query],
-          execute: () => compiler.compile(request, schemaRequest ?? '{}'),
+          execute: () => compiler.compile(request, schemaRequest),
         }),
       )
     } catch (error) {
@@ -717,7 +723,7 @@ export class ClientEngine implements Engine {
       return this.#withLocalPanicHandler(() =>
         this.#withCompileSpan({
           queries,
-          execute: () => compiler.compileBatch(request, schemaRequest ?? '{}'),
+          execute: () => compiler.compileBatch(request, schemaRequest),
         }),
       )
     } catch (err) {

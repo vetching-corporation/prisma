@@ -70,6 +70,7 @@ export type DynamicSchema = { from: string; to: string }
 export type RequestContextPayload = {
   dynamicSchemas?: DynamicSchema[]
   forceWriter?: boolean
+  usePrimary?: boolean
 }
 export type RequestContext = AsyncLocalStorage<RequestContextPayload>
 
@@ -110,6 +111,19 @@ export type PrismaClientOptions = PrismaClientMutuallyExclusiveOptions & {
    * timeout ?= 5000
    */
   transactionOptions?: Transaction.Options
+
+  /**
+   * Read replication options.
+   */
+  replication?: {
+    /**
+     * When true, automatically pin all subsequent reads to the primary adapter
+     * after a write occurs within the same request scope (AsyncLocalStorage).
+     * Prevents stale reads caused by replication lag.
+     * @default true
+     */
+    autoPinOnWrite?: boolean
+  }
 
   /**
    * @example
@@ -465,6 +479,7 @@ constructor() {
           adapter,
           adapterReplica,
           requestContext: this._requestContext,
+          autoPinOnWrite: options.replication?.autoPinOnWrite ?? true,
           accelerateUrl: options.accelerateUrl,
           sqlCommenters: options.comments,
           parameterizationSchema: config.parameterizationSchema,
@@ -542,8 +557,10 @@ new PrismaClient({
      * })
      */
     $setGlobalSchema<R>(schema: string, cb: () => R): R {
+      const current = this._requestContext.getStore() ?? {}
       return this._requestContext.run(
         {
+          ...current,
           dynamicSchemas: [
             {
               from: 'hospital_template',
