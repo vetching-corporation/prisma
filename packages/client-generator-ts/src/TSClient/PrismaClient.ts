@@ -6,6 +6,7 @@ import indent from 'indent-string'
 import { runtimeImportedType } from '../utils/runtimeImport'
 import { TAB_SIZE } from './constants'
 import { GenerateContext } from './GenerateContext'
+import { RequestContext } from './RequestContext'
 import { TSClientOptions } from './TSClient'
 import * as tsx from './utils/type-builders'
 
@@ -264,6 +265,8 @@ export class PrismaClientClass {
     const { dmmf } = this.context
 
     return `\
+${new RequestContext().toTS()}
+
 export type LogOptions<ClientOptions extends Prisma.PrismaClientOptions> =
   'log' extends keyof ClientOptions ? ClientOptions['log'] extends Array<Prisma.LogLevel | Prisma.LogDefinition> ? Prisma.GetEvents<ClientOptions['log']> : never : never
 
@@ -296,6 +299,39 @@ export interface PrismaClient<
    * Disconnect from the database
    */
   $disconnect(): runtime.Types.Utils.JsPromise<void>;
+
+  /**
+   * Returns the request context (AsyncLocalStorage)
+   * @returns RequestContext
+   */
+  $context(): RequestContext;
+
+  /**
+   * Set the global schema for the client.
+   * @param schema - The schema to set (eg. \`hospital2\`)
+   * @param cb - Express middleware function (eg. \`next()\`)
+   *
+   * @example
+   * // In express middleware, it could be used like this:
+   * app.use((_req, _res, next) => {
+   *   prisma.$setGlobalSchema('hospital2', next)
+   * })
+   */
+  $setGlobalSchema<R>(schema: string, cb: () => R): R
+
+  /**
+   * Force all queries in the callback to use the writer (primary) database.
+   * Useful when you need to read data immediately after writing.
+   * @param cb - Async callback function
+   * @returns Promise resolving to the callback's return value
+   *
+   * @example
+   * const result = await prisma.$forceWriter(async () => {
+   *   await prisma.user.create({ data: { name: 'Alice' } })
+   *   return prisma.user.findMany()
+   * })
+   */
+  $forceWriter<T>(cb: () => Promise<T>): Promise<T>
 
 ${[
   executeRawDefinition(this.context),

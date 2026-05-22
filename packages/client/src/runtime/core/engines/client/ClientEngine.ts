@@ -93,6 +93,7 @@ type ExecutorKind =
   | {
       remote: false
       driverAdapterFactory: SqlDriverAdapterFactory
+      driverAdapterReplicaFactory?: SqlDriverAdapterFactory
     }
   | {
       remote: true
@@ -123,7 +124,11 @@ export class ClientEngine implements Engine {
     if (config.accelerateUrl !== undefined) {
       this.#executorKind = { remote: true, accelerateUrl: config.accelerateUrl }
     } else if (config.adapter) {
-      this.#executorKind = { remote: false, driverAdapterFactory: config.adapter }
+      this.#executorKind = {
+        remote: false,
+        driverAdapterFactory: config.adapter,
+        driverAdapterReplicaFactory: config.adapterReplica,
+      }
       debug('Using driver adapter: %O', config.adapter)
     } else {
       throw new PrismaClientInitializationError(
@@ -242,6 +247,8 @@ export class ClientEngine implements Engine {
     } else {
       return await LocalExecutor.connect({
         driverAdapterFactory: this.#executorKind.driverAdapterFactory,
+        driverAdapterReplicaFactory: this.#executorKind.driverAdapterReplicaFactory,
+        requestContext: this.config.requestContext,
         tracingHelper: this.tracingHelper,
         transactionOptions: {
           ...this.config.transactionOptions,
@@ -478,11 +485,14 @@ export class ClientEngine implements Engine {
     let plan: QueryPlanNode
     let placeholderValues: Record<string, unknown> = {}
 
+    const schemaRequestStr = query.schemaRequest ? JSON.stringify(query.schemaRequest) : undefined
+
     if (isRawQuery(query)) {
       plan = compileRawQuery(query)
     } else {
       const { parameterizedQuery, placeholderValues: extractedValues } = parameterizeQuery(query, this.#paramGraph)
-      const cacheKey = JSON.stringify(parameterizedQuery)
+      const parameterizedStr = JSON.stringify(parameterizedQuery)
+      const cacheKey = schemaRequestStr ? `${parameterizedStr}::${schemaRequestStr}` : parameterizedStr
       placeholderValues = extractedValues
 
       // We do not cache `createMany` and `createManyAndReturn` queries as they are very unlikely
@@ -495,7 +505,7 @@ export class ClientEngine implements Engine {
         plan = cached
       } else {
         debug('query plan cache miss')
-        plan = this.#compileQuery(parameterizedQuery, cacheKey, queryCompiler)
+        plan = this.#compileQuery(parameterizedQuery, cacheKey, queryCompiler, schemaRequestStr)
         if (isCacheable) {
           this.#queryPlanCache?.setSingle(cacheKey, plan)
         }
@@ -547,6 +557,8 @@ export class ClientEngine implements Engine {
       throw this.#transformRequestError(err, request)
     })
 
+    const schemaRequestStr = queries[0]?.schemaRequest ? JSON.stringify(queries[0].schemaRequest) : undefined
+
     const hasRawQueries = firstModelName === undefined
     let batchResponse: BatchResponse
     let placeholderValues: Record<string, unknown> = {}
@@ -556,7 +568,8 @@ export class ClientEngine implements Engine {
         batchPayload as JsonBatchQuery,
         this.#paramGraph,
       )
-      const cacheKeyStr = JSON.stringify(parameterizedBatch)
+      const parameterizedStr = JSON.stringify(parameterizedBatch)
+      const cacheKeyStr = schemaRequestStr ? `${parameterizedStr}::${schemaRequestStr}` : parameterizedStr
       placeholderValues = extractedValues
 
       const cached = this.#queryPlanCache?.getBatch(cacheKeyStr)
@@ -566,14 +579,14 @@ export class ClientEngine implements Engine {
       } else {
         debug('batch query plan cache miss')
         try {
-          batchResponse = this.#compileBatch(parameterizedBatch.batch, cacheKeyStr, queryCompiler)
+          batchResponse = this.#compileBatch(parameterizedBatch.batch, cacheKeyStr, queryCompiler, schemaRequestStr)
           this.#queryPlanCache?.setBatch(cacheKeyStr, batchResponse)
         } catch (error) {
           throw this.#transformCompileError(error)
         }
       }
     } else {
-      batchResponse = this.#compileBatch(queries, request, queryCompiler)
+      batchResponse = this.#compileBatch(queries, request, queryCompiler, schemaRequestStr)
     }
 
     try {
@@ -679,12 +692,12 @@ export class ClientEngine implements Engine {
     return executor.apiKey()
   }
 
-  #compileQuery(query: JsonQuery, request: string, compiler: QueryCompiler): QueryPlanNode {
+  #compileQuery(query: JsonQuery, request: string, compiler: QueryCompiler, schemaRequest?: string): QueryPlanNode {
     try {
       return this.#withLocalPanicHandler(() =>
         this.#withCompileSpan({
           queries: [query],
-          execute: () => compiler.compile(request),
+          execute: () => compiler.compile(request, schemaRequest ?? '{}'),
         }),
       )
     } catch (error) {
@@ -692,7 +705,7 @@ export class ClientEngine implements Engine {
     }
   }
 
-  #compileBatch(queries: JsonQuery[], request: string, compiler: QueryCompiler): BatchResponse {
+  #compileBatch(queries: JsonQuery[], request: string, compiler: QueryCompiler, schemaRequest?: string): BatchResponse {
     if (queries.every(isRawQuery)) {
       return {
         type: 'multi',
@@ -704,7 +717,7 @@ export class ClientEngine implements Engine {
       return this.#withLocalPanicHandler(() =>
         this.#withCompileSpan({
           queries,
-          execute: () => compiler.compileBatch(request),
+          execute: () => compiler.compileBatch(request, schemaRequest ?? '{}'),
         }),
       )
     } catch (err) {

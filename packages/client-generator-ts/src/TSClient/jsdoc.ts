@@ -74,7 +74,9 @@ const result = await prisma.user.groupBy({
   },
 })
 `,
-    fields: {},
+    fields: {
+      schema: (singular) => `The schema to use for the ${singular}. ('hospital_template' -> '\${schema}')`,
+    },
   },
   create: {
     body: (ctx) => `Create a ${ctx.singular}.
@@ -88,6 +90,7 @@ const ${ctx.singular} = await ${ctx.method}({
 })
 `,
     fields: {
+      schema: (singular) => `The schema to use for the ${singular}. ('hospital_template' -> '\${schema}')`,
       data: (singular) => `The data needed to create a ${singular}.`,
     },
   },
@@ -103,6 +106,7 @@ const ${uncapitalize(ctx.mapping.model)} = await ${ctx.method}({
 })
     `,
     fields: {
+      schema: (singular, plural) => `The schema to use for the ${plural}. ('hospital_template' -> '\${schema}')`,
       data: (singular, plural) => `The data used to create many ${plural}.`,
     },
   },
@@ -132,6 +136,7 @@ ${undefinedNote}
 `
     },
     fields: {
+      schema: (singular, plural) => `The schema to use for the ${plural}. ('hospital_template' -> '\${schema}')`,
       data: (singular, plural) => `The data used to create many ${plural}.`,
     },
   },
@@ -147,6 +152,7 @@ const ${uncapitalize(ctx.mapping.model)} = await ${ctx.method}({
   }
 })`,
     fields: {
+      schema: (singular) => `The schema to use for the ${singular}. ('hospital_template' -> '\${schema}')`,
       where: (singular) => `Filter, which ${singular} to fetch.`,
     },
   },
@@ -163,6 +169,7 @@ const ${uncapitalize(ctx.mapping.model)} = await ${ctx.method}({
   }
 })`,
     fields: {
+      schema: (singular) => `The schema to use for the ${singular}. ('hospital_template' -> '\${schema}')`,
       where: (singular) => `Filter, which ${singular} to fetch.`,
     },
   },
@@ -179,6 +186,7 @@ const ${uncapitalize(ctx.mapping.model)} = await ${ctx.method}({
   }
 })`,
     fields: {
+      schema: (singular) => `The schema to use for the ${singular}. ('hospital_template' -> '\${schema}')`,
       where: (singular) => `Filter, which ${singular} to fetch.`,
       orderBy: JSDocFields.orderBy,
       cursor: (singular, plural) => addLinkToDocs(`Sets the position for searching for ${plural}.`, 'cursor'),
@@ -201,6 +209,7 @@ const ${uncapitalize(ctx.mapping.model)} = await ${ctx.method}({
   }
 })`,
     fields: {
+      schema: (singular) => `The schema to use for the ${singular}. ('hospital_template' -> '\${schema}')`,
       where: (singular) => `Filter, which ${singular} to fetch.`,
       orderBy: JSDocFields.orderBy,
       cursor: (singular, plural) => addLinkToDocs(`Sets the position for searching for ${plural}.`, 'cursor'),
@@ -231,6 +240,7 @@ ${onlySelect}
 `
     },
     fields: {
+      schema: (singular, plural) => `The schema to use for the ${plural}. ('hospital_template' -> '\${schema}')`,
       where: (singular, plural) => `Filter, which ${plural} to fetch.`,
       orderBy: JSDocFields.orderBy,
       skip: JSDocFields.skip,
@@ -255,6 +265,7 @@ const ${uncapitalize(ctx.mapping.model)} = await ${ctx.method}({
 })
 `,
     fields: {
+      schema: (singular) => `The schema to use for the ${singular}. ('hospital_template' -> '\${schema}')`,
       data: (singular) => `The data needed to update a ${singular}.`,
       where: (singular) => `Choose, which ${singular} to update.`,
     },
@@ -277,6 +288,7 @@ const ${uncapitalize(ctx.mapping.model)} = await ${ctx.method}({
   }
 })`,
     fields: {
+      schema: (singular) => `The schema to use for the ${singular}. ('hospital_template' -> '\${schema}')`,
       where: (singular) => `The filter to search for the ${singular} to update in case it exists.`,
       create: (singular) =>
         `In case the ${singular} found by the \`where\` argument doesn't exist, create a new ${singular} with this data.`,
@@ -297,6 +309,7 @@ const ${ctx.singular} = await ${ctx.method}({
 })
 `,
     fields: {
+      schema: (singular) => `The schema to use for the ${singular}. ('hospital_template' -> '\${schema}')`,
       where: (singular) => `Filter which ${singular} to delete.`,
     },
   },
@@ -327,6 +340,7 @@ const aggregations = await prisma.user.aggregate({
   take: 10,
 })`,
     fields: {
+      schema: (singular) => `The schema to use for the ${singular}. ('hospital_template' -> '\${schema}')`,
       where: (singular) => `Filter which ${singular} to aggregate.`,
       orderBy: JSDocFields.orderBy,
       cursor: () => addLinkToDocs(`Sets the start position`, 'cursor'),
@@ -356,7 +370,9 @@ const count = await ${ctx.method}({
     // ... the filter for the ${ctx.plural} we want to count
   }
 })`,
-    fields: {},
+    fields: {
+      schema: (singular, plural) => `The schema to use for the ${plural}. ('hospital_template' -> '\${schema}')`,
+    },
   },
   updateMany: {
     body: (ctx) =>
@@ -375,6 +391,7 @@ const ${uncapitalize(ctx.mapping.model)} = await ${ctx.method}({
 })
 `,
     fields: {
+      schema: (singular, plural) => `The schema to use for the ${plural}. ('hospital_template' -> '\${schema}')`,
       data: (singular, plural) => `The data used to update ${plural}.`,
       where: (singular, plural) => `Filter which ${plural} to update`,
       limit: (singular, plural) => `Limit how many ${plural} to update.`,
@@ -412,6 +429,7 @@ ${undefinedNote}
 `
     },
     fields: {
+      schema: (singular, plural) => `The schema to use for the ${plural}. ('hospital_template' -> '\${schema}')`,
       data: (singular, plural) => `The data used to update ${plural}.`,
       where: (singular, plural) => `Filter which ${plural} to update`,
       limit: (singular, plural) => `Limit how many ${plural} to update.`,
@@ -430,6 +448,7 @@ const { count } = await ${ctx.method}({
 })
 `,
     fields: {
+      schema: (singular, plural) => `The schema to use for the ${plural}. ('hospital_template' -> '\${schema}')`,
       where: (singular, plural) => `Filter which ${plural} to delete`,
       limit: (singular, plural) => `Limit how many ${plural} to delete.`,
     },
@@ -446,6 +465,7 @@ const ${uncapitalize(ctx.mapping.model)} = await ${ctx.method}({
   ]
 })`,
     fields: {
+      schema: (singular) => `The schema to use for the ${singular}. ('hospital_template' -> '\${schema}')`,
       pipeline: () =>
         'An array of aggregation stages to process and transform the document stream via the aggregation pipeline. ${@link https://docs.mongodb.com/manual/reference/operator/aggregation-pipeline MongoDB Docs}.',
       options: () =>
@@ -461,6 +481,7 @@ const ${uncapitalize(ctx.mapping.model)} = await ${ctx.method}({
   filter: { age: { $gt: 25 } }
 })`,
     fields: {
+      schema: (singular) => `The schema to use for the ${singular}. ('hospital_template' -> '\${schema}')`,
       filter: () =>
         'The query predicate filter. If unspecified, then all documents in the collection will match the predicate. ${@link https://docs.mongodb.com/manual/reference/operator/query MongoDB Docs}.',
       options: () =>

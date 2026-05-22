@@ -167,12 +167,30 @@ function clientExtensionsDefinitions() {
 function buildClientOptions(context: GenerateContext) {
   // Build the mutually exclusive options union type
   // This matches PrismaClientMutuallyExclusiveOptions from runtime
+  const adapterOptions = ts
+    .objectType()
+    .add(ts.property('primary', ts.namedType('runtime.SqlDriverAdapterFactory')))
+    .add(
+      ts
+        .property('replica', ts.unionType([ts.namedType('runtime.SqlDriverAdapterFactory'), ts.namedType('null')]))
+        .optional(),
+    )
+
   const adapterOption = ts
     .objectType()
     .add(
-      ts
-        .property('adapter', ts.namedType('runtime.SqlDriverAdapterFactory'))
-        .setDocComment(ts.docComment('Instance of a Driver Adapter, e.g., like one provided by `@prisma/adapter-pg`.')),
+      ts.property('adapter', adapterOptions).setDocComment(
+        ts.docComment(`Instance of a Driver Adapter, e.g., like one provided by \`@prisma/adapter-pg\`
+            @example
+            \`\`\`
+            const prisma = new PrismaClient({
+              adapter: {
+                primary: new PrismaPg(),
+                replica: new PrismaPg(), // (optional) if not provided, the read operations will only use the primary adapter
+              },
+            })
+            \`\`\``),
+      ),
     )
     .add(ts.property('accelerateUrl', ts.neverType).optional())
 

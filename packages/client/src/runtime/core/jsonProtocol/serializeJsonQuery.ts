@@ -1,6 +1,7 @@
 import { RuntimeDataModel, RuntimeModel, uncapitalize } from '@prisma/client-common'
 import { isObjectEnumValue } from '@prisma/client-runtime-utils'
 import { assertNever } from '@prisma/internals'
+import type { DynamicSchema } from '@prisma/json-protocol'
 
 import { ErrorFormat } from '../../getPrismaClient'
 import { CallSite } from '../../utils/CallSite'
@@ -76,6 +77,7 @@ export type SerializeParams = {
   previewFeatures: string[]
   globalOmit?: GlobalOmitOptions
   wrapRawValues?: boolean
+  dynamicSchemas?: DynamicSchema[]
 }
 
 const STRICT_UNDEFINED_ERROR_MESSAGE = 'explicitly `undefined` values are not allowed'
@@ -93,6 +95,7 @@ export function serializeJsonQuery({
   previewFeatures,
   globalOmit,
   wrapRawValues,
+  dynamicSchemas,
 }: SerializeParams): JsonQuery {
   const context = new SerializeContext({
     runtimeDataModel,
@@ -110,10 +113,12 @@ export function serializeJsonQuery({
     globalOmit,
     wrapRawValues,
   })
+  const { schema, ...extractedArgs } = args ?? {}
   return {
     modelName,
     action: jsActionToProtocolAction[action],
-    query: serializeFieldSelection(args, context),
+    query: serializeFieldSelection(extractedArgs, context),
+    schemaRequest: serializeSchemaRequest(dynamicSchemas, schema),
   }
 }
 
@@ -127,6 +132,24 @@ function serializeFieldSelection(
     arguments: serializeArgumentsObject(args, context),
     selection: serializeSelectionSet(select, include, omit, context),
   }
+}
+
+function serializeSchemaRequest(
+  dynamicSchemas: DynamicSchema[] = [],
+  forceSchema?: string,
+): Record<string, string> | undefined {
+  dynamicSchemas = dynamicSchemas?.map((schema) => ({ ...schema })) ?? []
+  const serializedSchemas = Object.fromEntries(dynamicSchemas.map((schema) => [schema.from, schema.to]))
+
+  if (forceSchema && /^hospital([1-9]{1})([0-9]+)?$/.test(forceSchema)) {
+    serializedSchemas['hospital_template'] = forceSchema
+  }
+
+  if (Object.keys(serializedSchemas).length === 0) {
+    return undefined
+  }
+
+  return serializedSchemas
 }
 
 function serializeSelectionSet(

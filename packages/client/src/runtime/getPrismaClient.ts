@@ -6,7 +6,7 @@ import type { SqlDriverAdapterFactory } from '@prisma/driver-adapter-utils'
 import type { ExtendedSpanOptions, TracingHelper } from '@prisma/instrumentation-contract'
 import { logger } from '@prisma/internals'
 import type { SqlCommenterPlugin } from '@prisma/sqlcommenter'
-import { AsyncResource } from 'async_hooks'
+import { AsyncLocalStorage, AsyncResource } from 'async_hooks'
 import { EventEmitter } from 'events'
 
 import { PrismaClientInitializationError, PrismaClientValidationError } from '.'
@@ -66,6 +66,13 @@ declare global {
 // used by esbuild for tree-shaking
 typeof globalThis === 'object' ? (globalThis.NODE_CLIENT = true) : 0
 
+export type DynamicSchema = { from: string; to: string }
+export type RequestContextPayload = {
+  dynamicSchemas?: DynamicSchema[]
+  forceWriter?: boolean
+}
+export type RequestContext = AsyncLocalStorage<RequestContextPayload>
+
 export type ErrorFormat = 'pretty' | 'colorless' | 'minimal'
 
 /**
@@ -77,7 +84,10 @@ type PrismaClientMutuallyExclusiveOptions =
       /**
        * Instance of a Driver Adapter, e.g., like one provided by `@prisma/adapter-pg`.
        */
-      adapter: SqlDriverAdapterFactory
+      adapter: {
+        primary: SqlDriverAdapterFactory
+        replica?: SqlDriverAdapterFactory | null
+      }
       accelerateUrl?: never
     }
   | {
@@ -191,6 +201,7 @@ export type InternalRequestParams = {
   middlewareArgsMapper?: MiddlewareArgsMapper<unknown, unknown>
   /** Used for Accelerate client extension via Data Proxy */
   customDataProxyFetch?: AccelerateExtensionFetchDecorator
+  requestCtx?: RequestContextPayload
 } & Omit<QueryMiddlewareParams, 'runInTransaction'>
 
 export type MiddlewareArgsMapper<RequestArgs, MiddlewareArgs> = {
@@ -330,6 +341,7 @@ export function getPrismaClient(config: GetPrismaClientConfig) {
      */
     _appliedParent: PrismaClient
     _createPrismaPromise = createPrismaPromiseFactory()
+    _requestContext: RequestContext = new AsyncLocalStorage<RequestContextPayload>()
 
     constructor(optionsArg: PrismaClientOptions) {
       if (!optionsArg) {
@@ -372,8 +384,10 @@ constructor() {
        */
 
       let adapter: SqlDriverAdapterFactory | undefined
+      let adapterReplica: SqlDriverAdapterFactory | undefined
       if (optionsArg.adapter) {
-        adapter = optionsArg.adapter
+        adapter = optionsArg.adapter.primary
+        adapterReplica = optionsArg.adapter.replica ?? undefined
 
         // Note:
         // - `getConfig(..).datasources[0].provider` can be `postgresql`, `postgres`, `mysql`, or other known providers
@@ -393,6 +407,13 @@ constructor() {
         if (adapter.provider !== expectedDriverAdapterProvider) {
           throw new PrismaClientInitializationError(
             `The Driver Adapter \`${adapter.adapterName}\`, based on \`${adapter.provider}\`, is not compatible with the provider \`${expectedDriverAdapterProvider}\` specified in the Prisma schema.`,
+            this._clientVersion,
+          )
+        }
+
+        if (adapterReplica && adapterReplica.provider !== expectedDriverAdapterProvider) {
+          throw new PrismaClientInitializationError(
+            `The Replication Driver Adapter \`${adapterReplica.adapterName}\`, based on \`${adapterReplica.provider}\`, is not compatible with the provider \`${expectedDriverAdapterProvider}\` specified in the Prisma schema.`,
             this._clientVersion,
           )
         }
@@ -442,6 +463,8 @@ constructor() {
           },
           logEmitter,
           adapter,
+          adapterReplica,
+          requestContext: this._requestContext,
           accelerateUrl: options.accelerateUrl,
           sqlCommenters: options.comments,
           parameterizationSchema: config.parameterizationSchema,
@@ -497,6 +520,44 @@ new PrismaClient({
 
     get [Symbol.toStringTag]() {
       return 'PrismaClient'
+    }
+
+    /**
+     * Returns the request context (AsyncLocalStorage)
+     * @returns RequestContext
+     */
+    $context(): RequestContext {
+      return this._requestContext
+    }
+
+    /**
+     * Set the global schema for the client.
+     * @param schema - The schema to set (eg. `hospital2`)
+     * @param cb - Express middleware function (eg. `next()`)
+     *
+     * @example
+     * // In express middleware, it could be used like this:
+     * app.use((_req, _res, next) => {
+     *   prisma.$setGlobalSchema('hospital2', next)
+     * })
+     */
+    $setGlobalSchema<R>(schema: string, cb: () => R): R {
+      return this._requestContext.run(
+        {
+          dynamicSchemas: [
+            {
+              from: 'hospital_template',
+              to: schema,
+            },
+          ],
+        },
+        cb,
+      )
+    }
+
+    $forceWriter<T>(cb: () => Promise<T>): Promise<T> {
+      const current = this._requestContext.getStore() ?? {}
+      return this._requestContext.run({ ...current, forceWriter: true }, cb)
     }
 
     $on<E extends ExtendedEventType>(eventType: E, callback: EventCallback<E>): PrismaClient {
@@ -555,6 +616,7 @@ new PrismaClient({
         callsite: getCallSite(this._errorFormat),
         dataPath: [],
         middlewareArgsMapper,
+        requestCtx: this._requestContext.getStore() ?? {},
       })
     }
 
@@ -630,6 +692,7 @@ Or read our docs at https://www.prisma.io/docs/concepts/components/prisma-client
           argsMapper: rawCommandArgsMapper,
           callsite: getCallSite(this._errorFormat),
           transaction: transaction,
+          requestCtx: this._requestContext.getStore() ?? {},
         })
       })
     }
@@ -654,6 +717,7 @@ Or read our docs at https://www.prisma.io/docs/concepts/components/prisma-client
         callsite: getCallSite(this._errorFormat),
         dataPath: [],
         middlewareArgsMapper,
+        requestCtx: this._requestContext.getStore() ?? {},
       })
     }
 
@@ -1005,6 +1069,7 @@ Or read our docs at https://www.prisma.io/docs/concepts/components/prisma-client
       unpacker,
       otelParentCtx,
       customDataProxyFetch,
+      requestCtx,
     }: InternalRequestParams) {
       try {
         // execute argument transformation before execution
@@ -1027,6 +1092,7 @@ Or read our docs at https://www.prisma.io/docs/concepts/components/prisma-client
             clientVersion: this._clientVersion,
             previewFeatures: this._previewFeatures,
             globalOmit: this._globalOmit,
+            dynamicSchemas: requestCtx?.dynamicSchemas,
           }),
         )
 
