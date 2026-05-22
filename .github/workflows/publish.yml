@@ -108,16 +108,24 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          PRISMA_VERSION="${{ inputs.packageVersion }}"
+
           (
             cd packages/client && \
-            jq '.name = "@vetching-corporation/prisma-client"' "package.json" > "package-temp.json" && \
+            jq --arg v "$PRISMA_VERSION" '
+              .name = "@vetching-corporation/prisma-client"
+              | walk(if type == "string" and . == "workspace:*" then $v else . end)
+            ' "package.json" > "package-temp.json" && \
             mv "package-temp.json" "package.json" && \
             pnpm publish --no-git-checks
           )
 
           (
             cd packages/cli && \
-            jq '.name = "@vetching-corporation/prisma-cli" | .dependencies["@prisma/config"] = "${{ inputs.packageVersion }}" | .dependencies["@prisma/engines"] = "${{ inputs.packageVersion }}"' "package.json" > "package-temp.json" && \
+            jq --arg v "$PRISMA_VERSION" '
+              .name = "@vetching-corporation/prisma-cli"
+              | walk(if type == "string" and . == "workspace:*" then $v else . end)
+            ' "package.json" > "package-temp.json" && \
             mv "package-temp.json" "package.json" && \
             pnpm publish --no-git-checks
           )
