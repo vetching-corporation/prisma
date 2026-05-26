@@ -2,13 +2,20 @@ import { CompilerWasmLoadingConfig, RuntimeDataModel } from '@prisma/client-comm
 import type { SqlDriverAdapterFactory } from '@prisma/driver-adapter-utils'
 import type { DataSource, GeneratorConfig } from '@prisma/generator'
 import type { TracingHelper } from '@prisma/instrumentation-contract'
-import type { JsonQuery } from '@prisma/json-protocol'
+import type { DynamicSchema, JsonQuery } from '@prisma/json-protocol'
 import type { SerializedParamGraph } from '@prisma/param-graph'
 import type { SqlCommenterPlugin } from '@prisma/sqlcommenter'
+import type { AsyncLocalStorage } from 'async_hooks'
 
 import type { LogEmitter } from './types/Events'
 import type { QueryEngineResultData } from './types/QueryEngine'
 import type * as Transaction from './types/Transaction'
+
+export interface RequestContextStore {
+  dynamicSchemas?: DynamicSchema[]
+  forceWriter?: boolean
+  usePrimary?: boolean
+}
 
 export type BatchTransactionOptions = {
   isolationLevel?: Transaction.IsolationLevel
@@ -126,6 +133,26 @@ export interface EngineConfig {
    * Instance of a Driver Adapter, e.g., like one provided by `@prisma/adapter-pg`.
    */
   adapter?: SqlDriverAdapterFactory
+
+  /**
+   * Instance of a Replication Driver Adapter, e.g., like one provided by `@prisma/adapter-pg`.
+   * If set, all read queries would be performed through it.
+   * @remarks only used by LocalExecutor.ts
+   */
+  adapterReplica?: SqlDriverAdapterFactory
+
+  /**
+   * AsyncLocalStorage for request context (dynamic schema, forceWriter).
+   * @remarks only used by LocalExecutor.ts for read replication routing
+   */
+  requestContext?: AsyncLocalStorage<RequestContextStore>
+
+  /**
+   * When true, automatically pin all subsequent reads to the primary adapter
+   * after a write occurs within the same AsyncLocalStorage scope.
+   * @default true
+   */
+  autoPinOnWrite?: boolean
 
   /**
    * Prisma Accelerate URL allowing the client to connect through Accelerate instead of a direct database.

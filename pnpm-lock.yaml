@@ -777,8 +777,8 @@ importers:
         specifier: workspace:*
         version: link:../param-graph-builder
       '@prisma/query-compiler-wasm':
-        specifier: 7.8.0-6.3c6e192761c0362d496ed980de936e2f3cebcd3a
-        version: 7.8.0-6.3c6e192761c0362d496ed980de936e2f3cebcd3a
+        specifier: npm:@vetching-corporation/prisma-query-compiler-wasm@7.8.0-1.f2d61fe57c9b6b1179772951016cabc4bf47a015
+        version: '@vetching-corporation/prisma-query-compiler-wasm@7.8.0-1.f2d61fe57c9b6b1179772951016cabc4bf47a015'
       '@prisma/query-plan-executor':
         specifier: workspace:*
         version: link:../query-plan-executor
@@ -3799,9 +3799,6 @@ packages:
   '@prisma/prisma-schema-wasm@7.8.0-6.3c6e192761c0362d496ed980de936e2f3cebcd3a':
     resolution: {integrity: sha512-yyKNwOSaxExepEI+pWwESbDNRSIhzE53PXD6YaEvY7cNl39qOIMjWJCIXMDwZQpt5ixDkL/sesWYg3XxCmBkZQ==}
 
-  '@prisma/query-compiler-wasm@7.8.0-6.3c6e192761c0362d496ed980de936e2f3cebcd3a':
-    resolution: {integrity: sha512-W64gW5KuFIvgbQrtdYzi+5ebt2KV6JIKEWkQnz6YwY7rNzczgLYQ52MGf4Gcqttxb6pFdhO1+O5Csi2zc85yJA==}
-
   '@prisma/query-plan-executor@7.2.0':
     resolution: {integrity: sha512-EOZmNzcV8uJ0mae3DhTsiHgoNCuu1J9mULQpGCh62zN3PxPTd+qI9tJvk5jOst8WHKQNwJWR3b39t0XvfBB0WQ==}
 
@@ -4505,6 +4502,9 @@ packages:
   '@typespec/ts-http-runtime@0.3.5':
     resolution: {integrity: sha512-yURCknZhvywvQItHMMmFSo+fq5arCUIyz/CVk7jD89MSai7dkaX8ufjCWp3NttLojoTVbcE72ri+be/TnEbMHw==}
     engines: {node: '>=20.0.0'}
+
+  '@vetching-corporation/prisma-query-compiler-wasm@7.8.0-1.f2d61fe57c9b6b1179772951016cabc4bf47a015':
+    resolution: {integrity: sha512-UVuYzjjMG0/wnn/ZeH6vh4vy2tzwCKrrrXPNmgHHujor66UbRowdDMiKPxvuLmpm2uyEPRLtgiHh5jCYCGcr4Q==, tarball: https://npm.pkg.github.com/download/@vetching-corporation/prisma-query-compiler-wasm/7.8.0-1.f2d61fe57c9b6b1179772951016cabc4bf47a015/63453497c476ad756d87f66e11b46135fe737c64}
 
   '@vitest/coverage-v8@4.0.18':
     resolution: {integrity: sha512-7i+N2i0+ME+2JFZhfuz7Tg/FqKtilHjGyGvoHYQ6iLV0zahbsJ9sljC9OcFcPDbhYKCet+sG8SsVqlyGvPflZg==}
@@ -10634,8 +10634,6 @@ snapshots:
 
   '@prisma/prisma-schema-wasm@7.8.0-6.3c6e192761c0362d496ed980de936e2f3cebcd3a': {}
 
-  '@prisma/query-compiler-wasm@7.8.0-6.3c6e192761c0362d496ed980de936e2f3cebcd3a': {}
-
   '@prisma/query-plan-executor@7.2.0': {}
 
   '@prisma/schema-engine-wasm@7.8.0-6.3c6e192761c0362d496ed980de936e2f3cebcd3a': {}
@@ -11365,6 +11363,8 @@ snapshots:
       tslib: 2.8.1
     transitivePeerDependencies:
       - supports-color
+
+  '@vetching-corporation/prisma-query-compiler-wasm@7.8.0-1.f2d61fe57c9b6b1179772951016cabc4bf47a015': {}
 
   '@vitest/coverage-v8@4.0.18(vitest@4.0.18(@opentelemetry/api@1.9.0)(@types/node@20.19.37)(jiti@2.6.1)(terser@5.27.0)(tsx@4.19.3)(yaml@2.8.3))':
     dependencies:

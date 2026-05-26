@@ -1,0 +1,934 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prisma ORM 7.8.0 Upgrade Design</title>
+    <style>
+      :root {
+        --bg: #0d1117;
+        --surface: #161b22;
+        --border: #30363d;
+        --text: #e6edf3;
+        --text-muted: #8b949e;
+        --accent: #58a6ff;
+        --accent-subtle: #1f6feb22;
+        --green: #3fb950;
+        --green-subtle: #23863622;
+        --yellow: #d29922;
+        --yellow-subtle: #bb800926;
+        --red: #f85149;
+        --red-subtle: #da363422;
+        --purple: #bc8cff;
+        --code-bg: #1c2128;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans KR', Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.7;
+        padding: 2rem;
+      }
+
+      .container {
+        max-width: 960px;
+        margin: 0 auto;
+      }
+
+      .header {
+        text-align: center;
+        padding: 3rem 0 2rem;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 2.5rem;
+      }
+
+      .header h1 {
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, var(--accent), var(--purple));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .header .meta {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 0.15rem 0.6rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin: 0 0.2rem;
+      }
+      .badge-blue {
+        background: var(--accent-subtle);
+        color: var(--accent);
+        border: 1px solid #1f6feb44;
+      }
+      .badge-green {
+        background: var(--green-subtle);
+        color: var(--green);
+        border: 1px solid #23863644;
+      }
+      .badge-yellow {
+        background: var(--yellow-subtle);
+        color: var(--yellow);
+        border: 1px solid #bb800944;
+      }
+      .badge-red {
+        background: var(--red-subtle);
+        color: var(--red);
+        border: 1px solid #da363444;
+      }
+
+      .toc {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1.5rem 2rem;
+        margin-bottom: 2.5rem;
+      }
+
+      .toc h2 {
+        font-size: 1rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.75rem;
+      }
+
+      .toc ol {
+        padding-left: 1.2rem;
+      }
+
+      .toc li {
+        margin-bottom: 0.3rem;
+      }
+
+      .toc a {
+        color: var(--accent);
+        text-decoration: none;
+        font-size: 0.95rem;
+      }
+      .toc a:hover {
+        text-decoration: underline;
+      }
+
+      h2 {
+        font-size: 1.6rem;
+        font-weight: 700;
+        margin: 2.5rem 0 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--border);
+        color: var(--text);
+      }
+
+      h3 {
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin: 1.8rem 0 0.7rem;
+        color: var(--text);
+      }
+
+      h4 {
+        font-size: 1.05rem;
+        font-weight: 600;
+        margin: 1.2rem 0 0.5rem;
+        color: var(--purple);
+      }
+
+      p {
+        margin-bottom: 0.8rem;
+        color: var(--text);
+      }
+
+      ul,
+      ol {
+        padding-left: 1.5rem;
+        margin-bottom: 0.8rem;
+      }
+
+      li {
+        margin-bottom: 0.35rem;
+      }
+
+      code {
+        background: var(--code-bg);
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+        font-size: 0.88em;
+        color: #f0883e;
+      }
+
+      pre {
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem 1.2rem;
+        overflow-x: auto;
+        margin: 0.8rem 0 1.2rem;
+        line-height: 1.5;
+      }
+
+      pre code {
+        background: none;
+        padding: 0;
+        color: var(--text);
+        font-size: 0.85rem;
+      }
+
+      .section {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1.5rem 2rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .section h2 {
+        margin-top: 0;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0.8rem 0 1.2rem;
+        font-size: 0.92rem;
+      }
+
+      th {
+        background: var(--code-bg);
+        text-align: left;
+        padding: 0.6rem 0.8rem;
+        border: 1px solid var(--border);
+        font-weight: 600;
+        color: var(--text-muted);
+        white-space: nowrap;
+      }
+
+      td {
+        padding: 0.6rem 0.8rem;
+        border: 1px solid var(--border);
+        vertical-align: top;
+      }
+
+      .callout {
+        border-radius: 8px;
+        padding: 1rem 1.2rem;
+        margin: 1rem 0;
+        border-left: 4px solid;
+      }
+
+      .callout-info {
+        background: var(--accent-subtle);
+        border-color: var(--accent);
+      }
+
+      .callout-warn {
+        background: var(--yellow-subtle);
+        border-color: var(--yellow);
+      }
+
+      .callout-danger {
+        background: var(--red-subtle);
+        border-color: var(--red);
+      }
+
+      .callout-title {
+        font-weight: 700;
+        margin-bottom: 0.3rem;
+      }
+
+      .phase {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        margin: 1rem 0;
+        overflow: hidden;
+      }
+
+      .phase-header {
+        padding: 0.8rem 1.2rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+      }
+
+      .phase-body {
+        padding: 0.8rem 1.2rem;
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+      }
+
+      .phase-1 .phase-header {
+        background: #1f6feb18;
+        color: var(--accent);
+      }
+      .phase-2 .phase-header {
+        background: #23863618;
+        color: var(--green);
+      }
+      .phase-3 .phase-header {
+        background: #da363418;
+        color: var(--red);
+      }
+      .phase-4 .phase-header {
+        background: #bc8cff18;
+        color: var(--purple);
+      }
+
+      .checklist {
+        list-style: none;
+        padding-left: 0;
+      }
+
+      .checklist li {
+        padding: 0.3rem 0;
+        padding-left: 1.6rem;
+        position: relative;
+      }
+
+      .checklist li::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0.55rem;
+        width: 14px;
+        height: 14px;
+        border: 2px solid var(--border);
+        border-radius: 3px;
+      }
+
+      .flow-diagram {
+        display: flex;
+        gap: 2rem;
+        margin: 1rem 0 1.5rem;
+        flex-wrap: wrap;
+      }
+
+      .flow-col {
+        flex: 1;
+        min-width: 300px;
+      }
+
+      .flow-col h4 {
+        margin-bottom: 0.8rem;
+        text-align: center;
+      }
+
+      .flow-step {
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.6rem 0.8rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.88rem;
+        position: relative;
+      }
+
+      .flow-step .num {
+        display: inline-block;
+        background: var(--accent-subtle);
+        color: var(--accent);
+        border-radius: 50%;
+        width: 22px;
+        height: 22px;
+        text-align: center;
+        line-height: 22px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-right: 0.4rem;
+      }
+
+      .flow-arrow {
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.8rem;
+        margin: 0.2rem 0;
+      }
+
+      .pkg-list {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin: 0.5rem 0;
+      }
+
+      .pkg {
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.4rem 0.8rem;
+        font-family: 'SF Mono', monospace;
+        font-size: 0.82rem;
+        color: var(--green);
+      }
+
+      .timeline-connector {
+        width: 2px;
+        height: 20px;
+        background: var(--border);
+        margin: 0 auto;
+      }
+
+      @media (max-width: 700px) {
+        body {
+          padding: 1rem;
+        }
+        .section {
+          padding: 1rem;
+        }
+        .header h1 {
+          font-size: 1.6rem;
+        }
+        .flow-diagram {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Prisma ORM 7.8.0 Upgrade Design</h1>
+        <p class="meta">
+          Vetching Corporation &mdash; 2026-05-21 &nbsp;&nbsp;
+          <span class="badge badge-blue">6.17.1 &rarr; 7.8.0</span>
+          <span class="badge badge-green">prisma (TS)</span>
+          <span class="badge badge-yellow">prisma-engines (Rust)</span>
+        </p>
+      </div>
+
+      <nav class="toc">
+        <h2>Table of Contents</h2>
+        <ol>
+          <li><a href="#overview">Overview</a></li>
+          <li><a href="#motivation">Motivation</a></li>
+          <li><a href="#current-state">Current State</a></li>
+          <li><a href="#breaking-changes">Breaking Changes (6.17.1 &rarr; 7.8.0)</a></li>
+          <li><a href="#upgrade-strategy">Upgrade Strategy: Rebase</a></li>
+          <li><a href="#verification">Verification Checklist</a></li>
+          <li><a href="#downstream">Downstream Dependencies</a></li>
+          <li><a href="#out-of-scope">Out of Scope</a></li>
+        </ol>
+      </nav>
+
+      <!-- Overview -->
+      <div class="section" id="overview">
+        <h2>Overview</h2>
+        <p>
+          Vetching Corporation 사내 Prisma ORM fork를 <strong>6.17.1</strong>에서 <strong>7.8.0</strong>으로
+          업그레이드한다. <code>prisma</code>(TypeScript)와 <code>prisma-engines</code>(Rust) 두 레포를 모두
+          업그레이드하며, 기존 리베이스 전략을 유지한다.
+        </p>
+      </div>
+
+      <!-- Motivation -->
+      <div class="section" id="motivation">
+        <h2>Motivation</h2>
+        <ul>
+          <li>
+            Query Plan 캐싱, SQL Comments(sqlcommenter), 중첩 트랜잭션(Savepoints), Prisma Studio 등 v7 신기능 활용
+          </li>
+          <li>upstream과의 버전 격차 해소</li>
+          <li>api-server Phase 2 (DB Read Replication 도입)의 선행 조건</li>
+        </ul>
+      </div>
+
+      <!-- Current State -->
+      <div class="section" id="current-state">
+        <h2>Current State</h2>
+
+        <h3>Branch Strategy (양쪽 레포 동일)</h3>
+        <pre><code>base (upstream sync) → main (base + localization) → typescript-engine/{version}/base (main + custom features)</code></pre>
+
+        <h3>Custom Features (커스텀 커밋 요약)</h3>
+
+        <h4>
+          prisma-engines <span class="badge badge-yellow">main..typescript-engine/6.17.1/base &mdash; 3커밋</span>
+        </h4>
+        <ol>
+          <li>
+            <code>3e571669b</code> feat(query-compiler-wasm): add dynamic schema support &mdash;
+            <code>DynamicSchema</code> 구조체, <code>compile_with_dynamic_schema()</code> 추가
+          </li>
+          <li><code>24d4330f6</code> fix(ci): rollback action.yml</li>
+          <li>
+            <code>d083fea91</code> fix: dynamic_schema mapping &mdash; <code>Context</code> schema lookup 로직 수정
+          </li>
+        </ol>
+
+        <h4>
+          prisma TypeScript <span class="badge badge-green">main..typescript-engine/6.17.1/base &mdash; 16커밋</span>
+        </h4>
+        <ul>
+          <li>
+            <strong>Multi-tenant:</strong> AsyncLocalStorage 기반 동적 스키마 치환, <code>$setGlobalSchema()</code>,
+            <code>$context()</code>, 모든 모델 액션에 <code>schema</code> 인수
+          </li>
+          <li>
+            <strong>Read Replication:</strong> <code>LocalExecutor</code>에서 읽기 오퍼레이션을 replica adapter로 라우팅
+          </li>
+          <li><strong>CI/Publish:</strong> GitHub Packages에 <code>@vetching-corporation</code> 스코프로 배포</li>
+          <li><strong>CLI 커스터마이징:</strong> 패키지명, 의존성 경로 등</li>
+        </ul>
+
+        <h3>Published Packages</h3>
+        <div class="pkg-list">
+          <span class="pkg">@vetching-corporation/prisma-client</span>
+          <span class="pkg">@vetching-corporation/prisma-cli</span>
+          <span class="pkg">@vetching-corporation/prisma-query-compiler-wasm</span>
+        </div>
+      </div>
+
+      <!-- Breaking Changes -->
+      <div class="section" id="breaking-changes">
+        <h2>Breaking Changes <span class="badge badge-red">6.17.1 &rarr; 7.8.0</span></h2>
+
+        <h3>Engine Architecture</h3>
+        <p>
+          Rust 바이너리 엔진 완전 제거. Query Compiler(WASM) + Query Interpreter(JS) + Driver Adapter가 유일한 아키텍처.
+          포크에서 이미 이 아키텍처를 사용 중이므로 방향은 동일.
+        </p>
+
+        <h3>Generator</h3>
+        <ul>
+          <li>
+            <code>prisma-client-js</code> &rarr; <code>prisma-client</code> 기본값 변경 (포크는 이미
+            <code>prisma-client</code> 사용 중)
+          </li>
+          <li><code>output</code> 경로 필수화 (포크는 이미 사용 중)</li>
+          <li><code>compilerBuild</code> 옵션 추가 (<code>fast</code> | <code>small</code>, v7.3.0+)</li>
+        </ul>
+
+        <h3>Client Instantiation</h3>
+        <ul>
+          <li><code>new PrismaClient()</code> 시 adapter 필수 전달 (포크는 이미 adapter 사용 중)</li>
+          <li><code>datasource.directUrl</code> 제거</li>
+        </ul>
+
+        <h3>Config</h3>
+        <ul>
+          <li><code>prisma.config.ts</code> 필수화 (introspection/migration 시)</li>
+          <li><code>.env</code> 자동 로딩 제거</li>
+          <li><code>datasource.url</code>이 schema.prisma가 아닌 <code>prisma.config.ts</code>에서 설정</li>
+          <li>downstream api-server에서도 <code>prisma.config.ts</code> 마이그레이션 필요 (별도 작업)</li>
+        </ul>
+
+        <h3>Removed</h3>
+        <ul>
+          <li>
+            <code>LibraryEngine</code>, <code>BinaryEngine</code>, <code>DataProxyEngine</code>,
+            <code>AccelerateEngine</code> &mdash; 모두 제거
+          </li>
+          <li><code>metrics</code> previewFeature 제거</li>
+          <li>다수의 <code>PRISMA_*</code> 환경 변수 제거</li>
+          <li>
+            Driver Adapter 이름 표준화 (<code>PrismaBetterSQLite3</code> &rarr; <code>PrismaBetterSqlite3</code> 등)
+          </li>
+        </ul>
+
+        <h3>Internal File Relocations (커스텀 코드에 영향)</h3>
+        <ul>
+          <li>
+            <code>packages/client/.../types/JsonProtocol.ts</code> &rarr; <strong>삭제됨</strong>. v7에서는
+            <code>packages/client-engine-runtime/src/json-protocol.ts</code>로 이동
+          </li>
+          <li><code>Executor.ts</code>에 <code>SqlCommenterQueryInfo</code> 추가 (SQL Comments 지원)</li>
+          <li><code>QueryCompiler.ts</code> 인터페이스 변경 확인 필요</li>
+        </ul>
+
+        <h3>New Features (활용 대상)</h3>
+        <ul>
+          <li>Query Plan 캐싱 (<code>queryPlanCacheMaxSize</code>, v7.4.0+)</li>
+          <li>SQL Comments / sqlcommenter (v7.1.0+)</li>
+          <li>중첩 트랜잭션 / Savepoints (v7.5.0+)</li>
+          <li>Prisma Studio (완전 재구축)</li>
+          <li>Partial Indexes (Preview, v7.4.0+)</li>
+        </ul>
+
+        <h3>Read Replica 관련</h3>
+        <div class="callout callout-info">
+          <div class="callout-title">Note</div>
+          <p>
+            v7의 <code>@prisma/extension-read-replicas</code>는 extension-level URL 라우팅이며 core runtime 통합이 아님.
+            사내 fork의 custom adapter-level <code>{ primary, replica }</code> 라우팅과는 별개 구현. 두 방식의 병행
+            사용은 지원하지 않으며, <strong>custom core-level 구현만 유지</strong>한다.
+          </p>
+        </div>
+      </div>
+
+      <!-- Upgrade Strategy -->
+      <div class="section" id="upgrade-strategy">
+        <h2>Upgrade Strategy: Rebase</h2>
+
+        <h3>Execution Order</h3>
+        <p>
+          <code>prisma-engines</code>의 custom WASM이 Phase 3(Multi-tenant) 검증과 Phase 4(lockfile 확정)에 필요하다.
+          Phase 1/2(CI, CLI)는 engines 없이도 진행 가능.
+        </p>
+
+        <div class="flow-diagram">
+          <div class="flow-col">
+            <h4 style="color: var(--yellow)">prisma-engines (Rust)</h4>
+            <div class="flow-step">
+              <span class="num">1</span> typescript-engine/7.8.0/base 생성 (6.17.1/base에서 fork)
+            </div>
+            <div class="flow-arrow">&darr;</div>
+            <div class="flow-step"><span class="num">2</span> base(7.8.0) 위로 리베이스 (커스텀 3커밋 충돌 해결)</div>
+            <div class="flow-arrow">&darr;</div>
+            <div class="flow-step"><span class="num">3</span> WASM 빌드 &amp; 배포 (CI)</div>
+          </div>
+          <div class="flow-col">
+            <h4 style="color: var(--green)">prisma (TypeScript)</h4>
+            <div class="flow-step">
+              <span class="num">4</span> typescript-engine/7.8.0/base 생성 (6.17.1/base에서 fork)
+            </div>
+            <div class="flow-arrow">&darr;</div>
+            <div class="flow-step"><span class="num">5</span> Phase 1~2 리베이스 (engines 불필요)</div>
+            <div class="flow-arrow">&darr;</div>
+            <div class="flow-step">
+              <span class="num">6</span> base(7.8.0) 위로 리베이스 Phase 3~4 (engines WASM 필요)
+            </div>
+            <div class="flow-arrow">&darr;</div>
+            <div class="flow-step"><span class="num">7</span> WASM 버전 교체 + pnpm-lock.yaml 갱신</div>
+            <div class="flow-arrow">&darr;</div>
+            <div class="flow-step"><span class="num">8</span> prisma-client &amp; prisma-cli 배포 (CI)</div>
+          </div>
+        </div>
+
+        <h3>Branch Creation (양쪽 레포 동일 패턴)</h3>
+        <pre><code>git checkout typescript-engine/6.17.1/base
+git checkout -b typescript-engine/7.8.0/base
+git rebase base</code></pre>
+
+        <h3>prisma-engines Rebase Detail</h3>
+        <p>커스텀 커밋 3개를 upstream 7.8.0(<code>base</code>) 위에 리베이스.</p>
+        <table>
+          <thead>
+            <tr>
+              <th>커밋</th>
+              <th>수정 대상</th>
+              <th>예상 충돌</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>3e571669b</code> dynamic schema support</td>
+              <td>
+                <code>compiler.rs</code>, <code>context.rs</code>, <code>lib.rs</code>,
+                <code>dynamic_schema.rs</code>(new), <code>Cargo.toml</code>, <code>build.sh</code>,
+                <code>package.json</code>
+              </td>
+              <td><span class="badge badge-red">높음</span></td>
+            </tr>
+            <tr>
+              <td><code>24d4330f6</code> rollback action.yml</td>
+              <td><code>.github/workflows/</code></td>
+              <td><span class="badge badge-green">낮음</span></td>
+            </tr>
+            <tr>
+              <td><code>d083fea91</code> dynamic_schema mapping</td>
+              <td><code>context.rs</code></td>
+              <td><span class="badge badge-yellow">중간</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h4>충돌 해결 전략</h4>
+        <ul>
+          <li>
+            <code>compiler.rs</code>: upstream 새 <code>compile()</code> 구현 기반으로
+            <code>schema_request</code> 파라미터만 재추가
+          </li>
+          <li>
+            <code>context.rs</code>: upstream 새 <code>Context</code> 구조에 <code>dynamic_schema</code> 필드와 메서드
+            재적용
+          </li>
+          <li><code>build.sh</code>: upstream 변경 확인 후 커스텀 최적화 옵션 재적용</li>
+        </ul>
+
+        <h3>prisma TypeScript Rebase Detail</h3>
+        <p>커스텀 커밋을 <strong>4개 페이즈</strong>로 나누어 리베이스. 각 페이즈 완료 시 사용자 승인 후 다음 진행.</p>
+
+        <!-- Phase 1 -->
+        <div class="phase phase-1">
+          <div class="phase-header">
+            Phase 1: CI/Publish + Package Config
+            <span class="badge badge-blue">6커밋</span>
+            <span class="badge badge-green">승인 게이트 1</span>
+          </div>
+          <div class="phase-body">
+            <ul>
+              <li><code>8f1f2b196</code> only publish prisma client</li>
+              <li><code>69aaba000</code> set npm registry</li>
+              <li><code>28a5f72cf</code> package name fix</li>
+              <li><code>3dccd7f51</code> cli publish script fix</li>
+              <li><code>631ac59a4</code> optimize npm publish script</li>
+              <li><code>4605a1d5b</code> restore publish script</li>
+            </ul>
+            <p>
+              예상 충돌: <span class="badge badge-yellow">낮음~중간</span> &mdash; v7 <code>base</code>에
+              <code>release.yml</code>이 존재하고 <code>publish.yml</code>은 없음. custom
+              <code>publish.yml</code> 신설은 충돌 없지만 v7 release pipeline과의 중복 확인 필요
+            </p>
+          </div>
+        </div>
+
+        <!-- Phase 2 -->
+        <div class="phase phase-2">
+          <div class="phase-header">
+            Phase 2: CLI Customization
+            <span class="badge badge-blue">4커밋 + 1 검토</span>
+            <span class="badge badge-green">승인 게이트 2</span>
+          </div>
+          <div class="phase-body">
+            <ul>
+              <li><code>7974722fd</code> add cli publish workflow</li>
+              <li><code>b1bac8e78</code> personalize prisma cli</li>
+              <li><code>e1c73c762</code> cli dependencies path</li>
+              <li><code>92d2e2726</code> cli dependencies version</li>
+            </ul>
+            <p>예상 충돌: <span class="badge badge-yellow">중간</span> &mdash; CLI 내부 구조 변경 가능</p>
+            <div class="callout callout-warn">
+              <div class="callout-title">검토 필요</div>
+              <p>
+                <code>da302cd87</code> chore: what? &mdash; CLI test fixture 삭제 커밋. v7에서 해당 fixture를 참조하는
+                <code>SubCommand.vitest.ts</code>가 있을 수 있으므로, rebase 시 drop 또는 revert를 검토. Multi-tenant과
+                무관하므로 이 Phase에서 처리.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 3 -->
+        <div class="phase phase-3">
+          <div class="phase-header">
+            Phase 3: Multi-tenant + Read Replication
+            <span class="badge badge-blue">3커밋</span>
+            <span class="badge badge-red">승인 게이트 3 &mdash; 최고 위험</span>
+          </div>
+          <div class="phase-body">
+            <ul>
+              <li><code>a7bf2b512</code> support multi-tenant client</li>
+              <li><code>e6169f27f</code> support multi-tenant query-compiler-wasm</li>
+              <li><code>877c65d7a</code> support read replication for adapter-*</li>
+            </ul>
+            <p>예상 충돌: <span class="badge badge-red">높음</span></p>
+
+            <div class="callout callout-info">
+              <div class="callout-title">Phase 3+4 병합 이유</div>
+              <p>
+                <code>adapter { primary, replica }</code> 패턴이 <code>getPrismaClient.ts</code>에서
+                multi-tenant(<code>$context()</code>, <code>$setGlobalSchema()</code>)과
+                read-replication(<code>adapterReplica</code>) 양쪽에 걸쳐 있어 같은 파일을 두 번 수정하는 것보다 한 번에
+                해결하는 것이 안전.
+              </p>
+            </div>
+
+            <h4>주요 충돌 파일</h4>
+            <table>
+              <thead>
+                <tr>
+                  <th>파일</th>
+                  <th>변경 내용</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>getPrismaClient.ts</code></td>
+                  <td>
+                    v7 engine 초기화 대폭 변경. <code>$context()</code>, <code>$setGlobalSchema()</code>,
+                    <code>adapter { primary, replica }</code> 전부 재적용
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>client-generator-ts/</code></td>
+                  <td>v7 제너레이터 구조 변경. schema 인수 생성 로직 재적용</td>
+                </tr>
+                <tr>
+                  <td><code>ClientEngine.ts</code></td>
+                  <td>Query Plan 캐싱, SQL Comments와의 호환성 확인. <code>schemaRequest</code> 전달 재적용</td>
+                </tr>
+                <tr>
+                  <td><code>serializeJsonQuery.ts</code></td>
+                  <td>schemaRequest 직렬화 재적용</td>
+                </tr>
+                <tr>
+                  <td><code>json-protocol.ts</code></td>
+                  <td>
+                    v7에서 <code>JsonProtocol.ts</code>가 이동된 위치. <code>DynamicSchema</code> 타입과
+                    <code>schemaRequest</code> 필드 재적용
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>QueryCompiler.ts</code></td>
+                  <td>
+                    <code>compile(request, schemaRequest)</code> /
+                    <code>compileBatch(request, schemaRequest)</code> 시그니처 재적용
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>Executor.ts</code></td>
+                  <td>v7에서 <code>SqlCommenterQueryInfo</code> 추가됨. replica 라우팅 + SQL Comments 호환성 확인</td>
+                </tr>
+                <tr>
+                  <td><code>LocalExecutor.ts</code></td>
+                  <td>읽기 오퍼레이션 라우팅 로직 재적용 + <code>forceWriter</code> ALS 지원</td>
+                </tr>
+                <tr>
+                  <td><code>Engine.ts</code></td>
+                  <td><code>adapterReplica</code> 필드 재적용</td>
+                </tr>
+                <tr>
+                  <td><code>JsApi.ts</code></td>
+                  <td><code>schema</code> 인수 재적용</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h4>필수 추가 작업 (Phase 3)</h4>
+
+            <div class="callout callout-danger">
+              <div class="callout-title">1. Query Plan Cache + schemaRequest</div>
+              <p>
+                v7 <code>ClientEngine.ts</code>의 캐시 키에 schemaRequest 해시를 포함하여 테넌트 간 query plan 오염
+                방지. schemaRequest는 작은 JSON(<code>{"hospital_template": "hospitalN"}</code>)이므로 해시 추가만으로
+                충분하며, LRU <code>queryPlanCacheMaxSize</code>가 메모리 상한을 관리.
+              </p>
+            </div>
+
+            <div class="callout callout-danger">
+              <div class="callout-title">2. forceWriter ALS 라우팅</div>
+              <p>
+                현재 6.17.1 fork의 <code>LocalExecutor</code>는
+                <code>readOperations.includes(operation)</code> 조건만으로 라우팅한다. api-server Phase 2 설계에서는
+                mutation GraphQL resolver 스코프 내 모든 쿼리(nested read 포함)를 writer로 강제하기 위해
+                AsyncLocalStorage <code>forceWriter</code> 플래그를 추가해야 한다.
+              </p>
+              <pre><code>// v7 LocalExecutor에 추가할 라우팅 로직
+const forceWriter = asyncLocalStorage.getStore()?.forceWriter ?? false
+const queryable = transaction
+  ? transactionManager.getTransaction(...)
+  : !forceWriter && replica && readOperations.includes(operation)
+    ? replica
+    : primary</code></pre>
+            </div>
+
+            <div class="callout callout-warn">
+              <div class="callout-title">3. relationJoins preview feature 호환</div>
+              <p>
+                v7.8.0 base에서 <code>relationJoins</code>는 여전히 preview feature이지만, <code>adapter-pg</code>에서
+                <code>supportsRelationJoins: true</code>로 지원됨. api-server Phase 2에서 활성화 예정이므로, fork의 read
+                replication 라우팅이 relation JOIN 쿼리에서도 정상 동작하는지 검증 필요.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 4 -->
+        <div class="phase phase-4">
+          <div class="phase-header">
+            Phase 4: WASM Version Update + Lockfile
+            <span class="badge badge-blue">2커밋</span>
+            <span class="badge badge-green">승인 게이트 4</span>
+          </div>
+          <div class="phase-body">
+            <ul>
+              <li><code>2d40fa2de</code> update query compiler version</li>
+              <li><code>77cd0a1c2</code> update query-compiler-wasm version</li>
+            </ul>
+            <p>engines WASM 빌드 배포 완료 후 새 해시로 교체</p>
+            <p>
+              <code>pnpm-lock.yaml</code> 갱신: custom WASM
+              tarball(<code>@vetching-corporation/prisma-query-compiler-wasm</code>) integrity 확인,
+              <code>pnpm install</code> 후 lockfile 커밋, CI <code>--frozen-lockfile</code> 통과 검증
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Verification -->
+      <div class="section" id="verification">
+        <h2>Verification Checklist</h2>
+
+        <h3>Runtime 기능 검증</h3>
+        <ul class="checklist">
+          <li>
+            prisma-engines: <code>compile(request, schema_request)</code> /
+            <code>compileBatch(request, schema_request)</code> 정상 동작
+          </li>
+          <li>prisma: <code>$setGlobalSchema()</code> &rarr; 동적 스키마 치환 동작</li>
+          <li>prisma: adapter <code>{primary, replica}</code> 패턴으로 읽기 라우팅 동작</li>
+          <li>prisma: <code>forceWriter</code> ALS 플래그로 mutation 스코프 내 writer 강제 동작</li>
+          <li>prisma: <code>prisma generate</code> 시 schema 인수가 타입에 포함</li>
+          <li>Query Plan Cache가 schemaRequest별로 분리되어 테넌트 간 오염 없음</li>
+          <li><code>relationJoins</code> preview feature 활성화 시 read replication 라우팅 정상 동작</li>
+        </ul>
+
+        <h3>v7 신기능 동작 확인</h3>
+        <ul class="checklist">
+          <li>Query Plan 캐싱 (<code>queryPlanCacheMaxSize</code>)</li>
+          <li>SQL Comments / sqlcommenter</li>
+          <li>중첩 트랜잭션 / Savepoints</li>
+        </ul>
+
+        <h3>Integration 검증</h3>
+        <ul class="checklist">
+          <li>
+            api-server: 새 버전으로 교체 후 <code>pnpm install</code> + <code>prisma generate</code> + 기본 쿼리 테스트
+          </li>
+          <li><code>pnpm-lock.yaml</code> integrity 확인, <code>--frozen-lockfile</code> CI 통과</li>
+          <li><code>prisma.config.ts</code> 마이그레이션 (downstream api-server 별도 작업)</li>
+        </ul>
+
+        <h3>환경 요구사항</h3>
+        <ul class="checklist">
+          <li>Node.js: v7 요구사항 확인 (20.19+ 또는 22.12+ 또는 24.0+)</li>
+          <li>vitest 버전 호환성 확인</li>
+          <li>CLI SubCommand fixture: <code>da302cd87</code> 삭제 대상 fixture가 v7 테스트에서 참조되는지 확인</li>
+        </ul>
+      </div>
+
+      <!-- Downstream -->
+      <div class="section" id="downstream">
+        <h2>Downstream Dependencies</h2>
+        <p>이 Prisma fork 업그레이드 완료 후 api-server Phase 2에서 진행할 작업:</p>
+        <ul>
+          <li><code>prisma.config.ts</code> 마이그레이션 (<code>.env</code> 자동 로딩 제거 대응)</li>
+          <li><code>@vetching-corporation/prisma-client</code> 버전 교체</li>
+          <li>replica adapter 활성화 (<code>DATABASE_REPLICA_HOST</code> 환경변수)</li>
+          <li><code>forceWriter</code> ALS 기반 Apollo mutation plugin 구현</li>
+          <li><code>relationJoins</code> preview feature 활성화</li>
+          <li>63자 relation field 축약</li>
+        </ul>
+      </div>
+
+      <!-- Out of Scope -->
+      <div class="section" id="out-of-scope">
+        <h2>Out of Scope</h2>
+        <ul>
+          <li>CI/빌드 워크플로 변경은 별도 처리 (사용자가 직접 관리)</li>
+          <li>버전 명명은 CI에서 자동 처리</li>
+          <li>api-server 코드 변경 (Prisma fork 업그레이드 후 별도 진행, Phase 2 설계 참조)</li>
+          <li>
+            <code>@prisma/extension-read-replicas</code> extension과의 병행은 지원하지 않음 (custom core-level 구현만
+            유지)
+          </li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>
